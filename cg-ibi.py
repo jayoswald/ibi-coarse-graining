@@ -21,7 +21,7 @@ def main():
     parser.add_option('',   '--md-temperature', 
                       type='float', dest='mdtemp',  default=300.0)
     parser.add_option('',   '--num_chains',        
-                      type='int',   dest='nchains', default=60)
+                      type='int',   dest='nchains', default=40)
     parser.add_option('',   '--num-blocks',
                       type='int',   dest='nblocks', default=14)
     parser.add_option('',   '--block',

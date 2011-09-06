@@ -85,6 +85,17 @@ class PairTable:
         self.force.append(ff)
         self.energy.append(ee)
 
+    # Writes the pair table data for iteration, it.
+    def write_lammps(self, path, key, it):
+        r = self.distance[it]
+        f = self.force[it]
+        e = self.energy[it]
+        fid = open(path, 'w')
+        fid.write(key+'\n')
+        fid.write('N %d R %f %f\n\n' %(len(r), min(r), max(r)))
+        for i in range(len(r)):
+            fid.write('%d %f %f %f\n' %(i, r[i], e[i], f[i]))
+        
     # Plots the forces at an iteration.
     def plot_force(self, it=-1):
         r = self.distance[it]
