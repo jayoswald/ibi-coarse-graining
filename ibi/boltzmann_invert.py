@@ -10,6 +10,7 @@ kB = 0.0019872041
 lj96_force = lambda v,x: v[1]*(18.0*v[0]**9/x**10 - 18.0*v[0]**6/x**7)
 
 """
+  Computes potential energy and force vs. distance from the radial density function.
 """
 class PairTable:
     # 
@@ -31,7 +32,7 @@ class PairTable:
             self.plot_energy()
             py.show()
 
-    # Computes the pair table, returning [distance, energy, force]
+    # Computes the pair table and appends it to the current step.
     def compute(self, rdf, npts=1000):
         # Removes any values with a density of zero.
         # This gets added back later.

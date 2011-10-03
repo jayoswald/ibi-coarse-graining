@@ -56,15 +56,12 @@ write_restart restart.equil
 
 # Input script used to generate samples.
 in_cg2 = """
-read_restart restart.equil
-fix 1 all nvt temp %(T)f %(T)f 200
-pair_coeff 1 1 pair.table.%(iteration)d SS
-thermo 100
-dump 1 all custom 5000 %(dump)s id mol xs ys zs
-run 50000
+read_restart  restart.equil
+fix           1 all nvt temp %(T)f %(T)f 200
+pair_coeff    1 1 pair.table.%(iteration)d SS
+thermo        100
+dump          1 all custom 5000 %(dump)s id mol xs ys zs
+run           50000
+write         restart.samples
 """
 
-
-# If this script was called as top level, run main.
-if __name__=='__main__': 
-    main()

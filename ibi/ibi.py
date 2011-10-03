@@ -1,4 +1,5 @@
 """
+        self.o
 
 """
 
@@ -21,25 +22,22 @@ class InverseBoltzmannIterator:
 
         make_system(self.lmp_data, opt.nchains, opt.blockstr,
                     opt.nblocks, self.bond_r0)
-        
 
     # Makes an estimate of the coarse-grain potentials by Boltzmann inversion.
     def iterate(self):
         dump_file = 'coarse_samples.lammpstrj'
 
-        # TODO: get these settings from elsewhere.
         param = {'k': self.bond_k, 'r0':self.bond_r0, 'T':self.options.mdtemp,
-                 'data':self.lmp_data, 'dump':dump_file,
-                 'iteration':self.iteration_ct}
-        # TODO: handle other bead types?
+                 'data':self.lmp_data, 'dump':dump_file, 'iteration':self.iteration_ct}
+        
         self.pair_table.write_lammps('pair.table.%d' % self.iteration_ct,
                                      'SS', self.iteration_ct)
-        # TODO: write bond table.
         lammps.run_coarse(param)
         self.iteration_ct += 1
-                    
+         
 
-# Main program.
+"""
+NOT USED ANYMORE!!!
 def main():
 
     # Make the initial coarse system (this should only need to be one once.
@@ -54,4 +52,4 @@ def main():
         lammps.write_table('pair.table.%d'%(i+1), 'SS', r,e,f)
         param['iteration'] = i+1
         lammps.run_coarse(param)
-        
+"""     
