@@ -1,0 +1,106 @@
+README                               cg-post                          06/29/2011
+
+
+DESCRIPTION
+
+  This code will compute the radial, bond length, and bond angle distributions
+  for a MD or CG-MD simulation.  The code is run with no arguments and requires
+  an ini file in the current working directory named "cg.ini" for all settings.
+
+SETTINGS
+
+input [lammps_read_data_file]
+  This should give a path to the file called in LAMMPS read_data.  
+  It is used to determine the bond structure of the system.
+(REQUIRED)
+
+dump [lammps_dump_file]
+  This should give a path to a LAMMPS trajectory file.  
+  This file must have data columns for atom id, x or xs, y or ys, z or zs.
+  (see LAMMPS dump documentation).
+(REQUIRED)
+
+output [tag]
+  This gives a unique string to name the output files created by cg-post.
+  The output files will be rdf-[tag]-??.txt, where ?? indicates the index
+  of the beads defined.
+(REQUIRED)
+  
+rdf [start] [end] [N]
+  Specifies the range and number of bins in the radial density histogram.
+(DEFAULT=200)
+
+rdf [start] [end] [N]
+  Specifies the range and number of bins in the bond-length histogram.
+(DEFAULT=100)
+
+adf [start] [end] [N]
+  Specifies the range and number of bins in the bond-angle histogram.
+(DEFAULT=180)
+
+type [i] [atom_type]
+  Provides the mapping between LAMMPS atom type [i] and a named type [atom_type]
+  (which) should correspond to the types in the car/mdf files.
+(REQUIRED for all atom types used in bead definitions)
+
+bead [t1 t2 t3 ...]
+  Defines a bead.  The index of beads will starts at zero and increments in
+  the order that they are defined (for matching up with the output files).
+  Following the bead command is a list of atom types that are connected 
+  together by bonds.  The atoms types can have wildcards, 
+  e.g. o2* will match o2e and o2s, while c*o would match c2o, c4o, etc.
+(REQUIRED for all bead definitions)
+
+center [c]
+  Defines the index of the atom within a bead that acts as the center of the
+  bead (for computing bead-bead distances.)  The bead is zero-indexed,
+  (i.e. setting [c]=0 will mean that the first atom in the bead is the center.
+  This command sets the definition for the most recently defined bead type and 
+  must follow a bead command.
+(REQUIRED for all bead definitions)
+
+share [s1 s2 s3 ...]
+  Allows a bead to share atoms with another bead.  If an atom is to be shared
+  by two bead types, then both beads should define a shared atom.  This command
+  also acts on the mostly recently defined bead type.
+(DEFAULT - no shared atoms)
+
+Anything in the cg.ini file following a # symbol is considered a comment.
+
+EXAMPLE:
+
+# Define input, dump and output tag.
+input      Mixed_AC_ver1.lammps 
+dump       mixed_ver1_1ns.dump 
+output     mixed
+
+# Specify the number of bins in the histograms.
+nadf 200
+nbdf 100
+nrdf 200
+
+# Define atom types.
+type 1  c3'
+type 2  c3a
+type 3  n3mh
+type 4  h1n
+type 5  c3"
+type 6  h1
+type 7  o1=
+type 8  c4
+type 9  o2s
+type 10 c4o
+type 11 o2e
+
+#          0   1   2   3   4   5    6    7   8   9   10  11 12  13
+bead      o2s c3' c3a c3a c3a c3a n3mh c3" n3mh c3a c3a c3a c3a c4 
+center    7
+# Share the first and last atoms.
+share     0 13
+
+#          0   1   2   3   4
+bead      c4* c4  c4  c4o o2*
+center    2
+# Allow the last atom to be shared.
+share     4
+
