@@ -3,6 +3,7 @@ from numpy import *
 from scipy import optimize
 import glob
 import os
+import paths
 
 """
     This module provides functions that are used to calculate the 
@@ -26,7 +27,7 @@ def compute_rdf(lmp_data, dump, out, r_range, b_range, a_range):
     f = open('cg.ini', 'w')
     f.write(cgini)
     f.close()
-    os.system('./cg-post')
+    os.system(paths.cgpost)
 
 
 # Reads the rdf/bdf/adf files and computes the average.

@@ -5,6 +5,7 @@
 
 from bead_spring_system import make_system
 from boltzmann_invert   import PairTable
+from distribution       import compute_rdf
 import lammps
 
 """
@@ -17,8 +18,8 @@ class InverseBoltzmannIterator:
         self.options      = opt
         self.pair_table   = PairTable(opt.mdtemp, 'rdf', False)
         self.lmp_data     = 'coarse_system.lammps'
-        self.bond_r0 = 5.0 # TODO fix me
-        self.bond_k  = 5.0        
+        self.bond_r0 = 4.862605
+        self.bond_k  = 0.259240        
 
         make_system(self.lmp_data, opt.nchains, opt.blockstr,
                     opt.nblocks, self.bond_r0)
@@ -33,6 +34,16 @@ class InverseBoltzmannIterator:
         self.pair_table.write_lammps('pair.table.%d' % self.iteration_ct,
                                      'SS', self.iteration_ct)
         lammps.run_coarse(param)
+
+        # Now we need to analyze the coarse-grain rdf function.
+        r = self.pair_table.distance[-1]
+        r_range = (min(r), max(r), 0.1)
+        b_range = (0.0,    15.0,   0.1)
+        a_range = (0.0,    180.0,  1.0)
+
+        compute_rdf(self.lmp_data, dump_file, 'cg', r_range, b_range, a_range)
+        import compare_rdf 
+        compare_rdf.compare_rdf()
         self.iteration_ct += 1
          
 
@@ -41,9 +52,7 @@ NOT USED ANYMORE!!!
 def main():
 
     # Make the initial coarse system (this should only need to be one once.
-    r_range = (min(r), max(r), 0.1)
-    b_range = (0.0,    15.0,   0.1)
-    a_range = (0.0,    180.0,  1.0)
+
     for i in range(5):
         distribution.compute_rdf(read_data, dump, 'coarse', r_range, b_range, a_range)
         distribution.compare('rdf', '.', 'rdf-comparison-it%d.png'%i)
