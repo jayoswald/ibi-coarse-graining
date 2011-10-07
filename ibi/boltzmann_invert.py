@@ -75,6 +75,7 @@ class PairTable:
 
         # Make ff die off smoothly at rcut.
         ff -= (ff[-1]/rr[-1]) / rr
+        ff -= 0.0002
         ff *= exp(-1.0/(rr[-1] - rr  + 1e-20))
 
         # Compute energy by integrating forces.

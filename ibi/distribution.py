@@ -65,8 +65,5 @@ def compare(path1, path2, path=''):
     else:          py.savefig(path)
 
 
-# For now, debugging will call the compare function.
-if __name__ == '__main__':
-    compare()
 
 

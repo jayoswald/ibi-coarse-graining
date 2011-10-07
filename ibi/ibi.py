@@ -7,6 +7,7 @@ from bead_spring_system import make_system
 from boltzmann_invert   import PairTable
 from distribution       import compute_rdf
 import lammps
+import compare_rdf 
 
 """
   
@@ -19,17 +20,18 @@ class InverseBoltzmannIterator:
         self.pair_table   = PairTable(opt.mdtemp, 'rdf', False)
         self.lmp_data     = 'coarse_system.lammps'
         self.bond_r0 = 4.862605
-        self.bond_k  = 0.259240        
+        self.bond_k  = 0.259240
+        self.density = 0.831960
 
         make_system(self.lmp_data, opt.nchains, opt.blockstr,
-                    opt.nblocks, self.bond_r0)
+                    opt.nblocks, self.bond_r0, self.density)
 
     # Makes an estimate of the coarse-grain potentials by Boltzmann inversion.
     def iterate(self):
         dump_file = 'coarse_samples.lammpstrj'
-
         param = {'k': self.bond_k, 'r0':self.bond_r0, 'T':self.options.mdtemp,
-                 'data':self.lmp_data, 'dump':dump_file, 'iteration':self.iteration_ct}
+                 'nproc':self.options.nproc, 'data':self.lmp_data, 'dump':dump_file,
+                 'iteration':self.iteration_ct}
         
         self.pair_table.write_lammps('pair.table.%d' % self.iteration_ct,
                                      'SS', self.iteration_ct)
@@ -42,8 +44,7 @@ class InverseBoltzmannIterator:
         a_range = (0.0,    180.0,  1.0)
 
         compute_rdf(self.lmp_data, dump_file, 'cg', r_range, b_range, a_range)
-        import compare_rdf 
-        compare_rdf.compare_rdf()
+        compare_rdf.compare()
         self.iteration_ct += 1
          
 

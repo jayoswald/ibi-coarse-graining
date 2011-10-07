@@ -1,24 +1,23 @@
 #!/usr/bin/env python
-import os
+import os, paths
 
 # Global params
 use_pbs = False
-nproc   = 4
 
 # Starts the initial lammps.
 def run_coarse(param):
     ifile  = ['in.cg-ibi-1', 'in.cg-ibi-2']
     lmpin  = [in_cg1 %param, in_cg2 %param]
-    lmp    = 'lmp_openmpi'
 
     for i,s in zip(ifile, lmpin):
         f = open(i, 'w')
         f.write(s)
         f.close()
-        run_lammps(i, lmp)
+        run_lammps(i, param['nproc'])
     
 # Runs LAMMPS via the command line.
-def run_lammps(inp, lmp):
+def run_lammps(inp, nproc):
+    lmp = paths.lammps
     if use_pbs: cmd = 'mpiexec %s -in %s' %(lmp, inp)
     else:       cmd = 'mpiexec -n %d %s -in %s' %(nproc, lmp, inp)
     os.system(cmd)
@@ -60,8 +59,8 @@ read_restart  restart.equil
 fix           1 all nvt temp %(T)f %(T)f 200
 pair_coeff    1 1 pair.table.%(iteration)d SS
 thermo        100
-dump          1 all custom 5000 %(dump)s id mol xs ys zs
-run           50000
-write         restart.samples
+dump          1 all custom 250 %(dump)s id mol xs ys zs
+run           20000
+write_restart restart.samples
 """
 

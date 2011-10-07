@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from numpy import * 
+from scipy import constants
 import glob
 
 """
@@ -9,10 +10,10 @@ import glob
       nblk:    number of blocks in a chain.
       nchain:  number of chains in the model.
 """
-def make_system(path, nchain, block=14*'S', nblk=1, r0=5.0, rvdw=5.0):
+def make_system(path, nchain, block, nblk, r0, density):
     print 'Making', nchain, 'chains of', nblk*block
     chain_size = len(block)*nblk
-    natoms     = chain_size*nchain
+    nbeads     = chain_size*nchain
     nbonds     = (chain_size-1)*nchain
 
     # Counts the number of unique species in block.
@@ -24,7 +25,7 @@ def make_system(path, nchain, block=14*'S', nblk=1, r0=5.0, rvdw=5.0):
 
     f = open(path, 'w')
     f.write('LAMMPS 2005 data file for soft beads\n\n')
-    f.write('% 7d atoms\n'        %natoms)
+    f.write('% 7d atoms\n'        %nbeads)
     f.write('% 7d bonds\n\n'      %nbonds)
     f.write('% 4d atom types\n'   %natomtypes)
     f.write('% 4d bond types\n\n' %nbondtypes)
@@ -33,9 +34,21 @@ def make_system(path, nchain, block=14*'S', nblk=1, r0=5.0, rvdw=5.0):
     ny = ceil(float(nchain)/nx)
     nz = chain_size 
 
-    f.write(' %15.9f %15.9f xlo xhi\n'%   (0.0, nx*rvdw))
-    f.write(' %15.9f %15.9f ylo yhi\n'%   (0.0, ny*rvdw))
-    f.write(' %15.9f %15.9f zlo zhi\n\n'% (0.0, nz*r0))
+    # Compute size of system based on total mass.
+    mass_per_bead = 72.10776  # in kg/mol
+    mass   = mass_per_bead * nbeads
+    
+    density *= 1e-24*constants.N_A # convert from g/cc to g/mol / A^3
+    print 'density is', density, 'g/mol / A^3'
+    volume = mass / density 
+    lz = nz * r0
+    dr = sqrt(volume/lz/(nx*ny))
+    lx = nx*sqrt(volume/lz/(nx*ny))
+    ly = ny * lx / nx
+
+    f.write(' %15.9f %15.9f xlo xhi\n'%   (0.0, lx))
+    f.write(' %15.9f %15.9f ylo yhi\n'%   (0.0, ly))
+    f.write(' %15.9f %15.9f zlo zhi\n\n'% (0.0, lz))
 
     f.write('Masses\n\n')
     f.write('1 72.0\n\n') # TODO: not exact
@@ -53,8 +66,8 @@ def make_system(path, nchain, block=14*'S', nblk=1, r0=5.0, rvdw=5.0):
     for m in range(nchain):
         x = m % nx
         y = floor(m / nx)
-        x *= rvdw
-        y *= rvdw
+        x *= dr
+        y *= dr
         for z in range(nz):
             tag   = z + m*nz + 1
             atype = atom_type(z)
