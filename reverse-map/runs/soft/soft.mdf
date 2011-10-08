@@ -1,0 +1,43 @@
+!BIOSYM molecular_data 4
+ 
+!Date: Sat Oct 08 14:35:04 2011   Materials Studio Generated MDF file
+ 
+#topology
+
+@column 1 element
+@column 2 atom_type
+@column 3 charge_group
+@column 4 isotope
+@column 5 formal_charge
+@column 6 charge
+@column 7 switching_atom
+@column 8 oop_flag
+@column 9 chirality_flag
+@column 10 occupancy
+@column 11 xray_temp_factor
+@column 12 connections
+ 
+@molecule Sketch16
+ 
+C4H8_1:C1           C  c4      ?     0  0     0.0000 0 0 8 1.0000  0.0000 C2 H7 H8 
+C4H8_1:C2           C  c4      ?     0  0     0.0000 0 0 8 1.0000  0.0000 C1 C3 H1 H2 
+C4H8_1:H1           H  h1      ?     0  0     0.0000 0 0 8 1.0000  0.0000 C2 
+C4H8_1:H2           H  h1      ?     0  0     0.0000 0 0 8 1.0000  0.0000 C2 
+C4H8_1:C3           C  c4      ?     0  0     0.0000 0 0 8 1.0000  0.0000 C2 C4 H3 H4 
+C4H8_1:C4           C  c4o     ?     0  0     0.0000 0 0 8 1.0000  0.0000 C3 O1 H5 H6 
+C4H8_1:O1           O  o2e     ?     0  1-    0.0000 0 0 8 1.0000  0.0000 C4 
+C4H8_1:H3           H  h1      ?     0  0     0.0000 0 0 8 1.0000  0.0000 C3 
+C4H8_1:H4           H  h1      ?     0  0     0.0000 0 0 8 1.0000  0.0000 C3 
+C4H8_1:H5           H  h1      ?     0  0     0.0000 0 0 8 1.0000  0.0000 C4 
+C4H8_1:H6           H  h1      ?     0  0     0.0000 0 0 8 1.0000  0.0000 C4 
+C4H8_1:H7           H  h1      ?     0  0     0.0000 0 0 8 1.0000  0.0000 C1 
+C4H8_1:H8           H  h1      ?     0  0     0.0000 0 0 8 1.0000  0.0000 C1 
+ 
+
+#atomset
+
+@list backbone Sketch16
+
+Sketch16:C4H8_1:C1 C2 C3 C4 O1 
+
+#end

@@ -9,6 +9,14 @@ using std::vector;
 using std::fstream;
 using std::cout;
 
+// Returns true if the string starts with the substring.
+inline bool startswith(const string &s, const char *beg) {
+    for (int i=0; i<s.size(); ++i) {
+        if (beg[i] == '\0') return true;
+        if (s[i] != beg[i]) return false;        
+    }
+    return false;
+}
 
 //! Writes a vector to the console.
 template<class T>
@@ -64,7 +72,7 @@ inline std::string trim(std::string s, std::string ws=" \t\n\r")
 }
 
 //! Splits a string like the python function.
-inline std::vector<std::string> split(std::string s, std::string delims=" \t\n")
+inline std::vector<std::string> split(std::string s, std::string delims=" \t\n\r")
 {
     std::vector<std::string> pieces;
     size_t begin=0, end=0;
