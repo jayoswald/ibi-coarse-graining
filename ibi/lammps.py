@@ -42,8 +42,8 @@ bond_coeff    1 %(k)f %(r0)f
 pair_style    table linear 1000 
 pair_coeff    1 1 pair.table.%(iteration)d SS
 special_bonds lj/coul 0.0 1.0 1.0 
-dump          1 all custom 100 dump-equil.lammpstrj id mol xu yu zu
-thermo        100
+#dump          1 all custom 100 dump-equil.lammpstrj id mol xu yu zu
+thermo        200
 thermo_style  custom step temp press ke pe etotal
 
 fix           1 all nvt temp %(T)f %(T)f 100

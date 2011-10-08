@@ -31,8 +31,7 @@ def main():
 
     iterator = ibi.ibi.InverseBoltzmannIterator(options)
 
-    iterator.iterate()
-    
+    iterator.iterate(3)
 
 if __name__ == '__main__': main() 
 

@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 from numpy import * 
 from scipy import optimize
-import glob
+from glob import glob
 import os
 import paths
+from matplotlib import pyplot as py
 
 """
     This module provides functions that are used to calculate the 
@@ -29,31 +30,24 @@ def compute_rdf(lmp_data, dump, out, r_range, b_range, a_range):
     f.close()
     os.system(paths.cgpost)
 
+# Gets specific iteration rdf files.
+def iteration_rdf_files(it):  return glob('rdf-cg-%02d*.txt' % it)
+def md_rdf_files():           return glob('rdf/rdf*.txt')
+
 
 # Reads the rdf/bdf/adf files and computes the average.
-def average_rdf(t='r', folder='rdf'):
-    s = os.path.join(folder, '%sdf' %t)
-    df_files = glob.glob(s+'*.txt')
-    df = None
-    for f in df_files:
-        data = open(f, 'r').readlines()
-        data = array([[float(x) for x in s.split()] for s in data])
-        if df==None: df = data
-        else:        df[:,1] += data[:,1]
-    df[:,1] /= len(df_files)
-    return df
+def average_rdf(rdf_files):
+    rdf = [genfromtxt(f) for f in rdf_files]
+    for i in range(1,len(rdf)):
+        rdf[0][:,1] += rdf[i][:,1]
+    rdf[0][:,1] *= 1.0/float(len(rdf))
+    return rdf[0]
 
+# Compares an iteration to the md rdf.
+def compare(it, figpath=''):
+    md_rdf = average_rdf(md_rdf_files())
+    cg_rdf = average_rdf(iteration_rdf_files(it))
 
-from matplotlib  import pyplot as py
-
-""" 
-    Compares two distributions.
-"""
-def compare(path1, path2, path=''):
-    md_rdf = average_rdf('r')
-    cg_rdf = average_rdf('r', '')
-
-    md_rdf[:,1] /= md_rdf[-1,1]
     py.clf()
     py.plot(md_rdf[:,0], md_rdf[:,1])
     py.plot(cg_rdf[:,0], cg_rdf[:,1])
@@ -61,9 +55,6 @@ def compare(path1, path2, path=''):
     py.ylabel('Radial density function g(r)')
     py.legend(['All atom model', 'coarse grain model'], loc='lower right')
 
-    if path == '': py.show()
-    else:          py.savefig(path)
-
-
-
+    if figpath == '': py.show()
+    else:             py.savefig(figpath)
 

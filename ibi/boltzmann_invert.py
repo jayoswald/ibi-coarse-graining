@@ -17,11 +17,10 @@ class PairTable:
     def __init__(self, md_temp, md_rdf, plot=False, npts=1000):
         self.temperature     = md_temp 
         self.min_distance    = 2.0
-        self.all_atom_rdf = distribution.average_rdf('r', md_rdf)
+        self.all_atom_rdf = distribution.average_rdf(distribution.md_rdf_files())
         
         self.distance  = []
         self.force     = []
-        self.rawforce  = []
         self.energy    = []
 
         print 'Computing initial pair table'
@@ -33,31 +32,30 @@ class PairTable:
             py.show()
 
     # Computes the pair table and appends it to the current step.
-    def compute(self, rdf, npts=1000):
+    def compute(self, rdf, npts=500):
         # Removes any values with a density of zero.
         # This gets added back later.
         rdf = rdf[nonzero(rdf[:,1])[0], :]
+
+        i0 = nonzero(rdf[:,1] > 0.25)[0][0]
         # Get distance (r) and energy (e).
         r =  rdf[:,0]
         e = -kB*self.temperature*log(rdf[:,1])
 
         # Compute derivative from splines.
-        rr = linspace(r[0], r[-1], npts)
+        
+        rr     = linspace(r[i0], r[-1], npts)
         interp = interpolator.Interpolator(r,e)
         ff = [-interp.derivative(ri) for ri in rr]
 
-        # Set minimum radial value where force is most repulsive.
-        i0 = ff.index(max(ff))
-        ff,rr = ff[i0::],rr[i0::]
-
-        lj96_err = lambda v,x,y: y - lj96_force(v,x)
 
         # Subtract 96 part away and smooth.
         v0 = [5.0, 0.01] 
-        v = optimize.leastsq(lj96_err, v0, args=(rr, ff))[0]
-        self.rawforce.append(ff[:])
+        lj96_err = lambda v: ff - lj96_force(v,rr)
+        v = optimize.leastsq(lj96_err, v0)[0]
+
         ff -= lj96_force(v, rr)
-        w,K = 2,4
+        w,K = 1,2
         for k in range(K):
             for i in range(w,len(ff)-w):
                 ff[i] = mean(ff[i-w:i+w])
@@ -67,16 +65,19 @@ class PairTable:
         # Add more values to short distance to make sure that 
         # LAMMPS run won't fail when pair distance < table min.
         dr   = rr[1]-rr[0]
-        rpad = arange(rr[0]-dr, self.min_distance, -dr)[::-1]
+        rpad = arange(rr[0]-dr, self.min_distance-dr, -dr)[::-1]
         fpad = lj96_force(v, rpad) + ff[0] - lj96_force(v, rr[0])
         rr   = concatenate((rpad, rr))
         ff   = concatenate((fpad, ff))
-        self.rawforce[-1] = concatenate((fpad, self.rawforce[-1]))
 
         # Make ff die off smoothly at rcut.
         ff -= (ff[-1]/rr[-1]) / rr
-        ff -= 0.0002
         ff *= exp(-1.0/(rr[-1] - rr  + 1e-20))
+
+        # Resample ff to fit 1000 pts
+        interp    = interpolator.Interpolator(rr, ff)
+        rr        = linspace(self.min_distance, rr[-1], npts)
+        ff        = array([interp(ri) for ri in rr])
 
         # Compute energy by integrating forces.
         # Integrating backwards reduces noise.
@@ -105,7 +106,6 @@ class PairTable:
 
         py.figure()
         py.hold(1)
-        py.plot(r, self.rawforce[it], linewidth=2, color='#CCCCEE')
         py.plot(r, f, 'b', linewidth=2)
         py.axis((min(r), max(r), min(f)-0.2, min(f) + 1.0))
         py.hold(0)
@@ -123,7 +123,14 @@ class PairTable:
         py.xlabel('Pair distance (A)')
         py.ylabel('Energy (kcal/mol)')
 
-
+    # Computes the corrections to the pair table.
+    def correction(self, it):
+        # compute force table based on current iteration.
+        rdf = distribution.iteration_rdf_files(it)
+        self.compute(distribution.average_rdf(rdf))
+        df = self.force[-1] - self.force[0]
+        self.force[-1] = self.force[-2] - df
+        
 # Computes the corrected pair table.
 def corrected_pair_table(T, ff0, npts=1000):
     rri,eei,ffi = pair_table(T, '', npts)
