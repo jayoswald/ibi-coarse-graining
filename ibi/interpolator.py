@@ -37,7 +37,7 @@ class Interpolator:
             intervals.append((u, A/denom, B/denom, C/denom, D/denom))
 
     def __call__(self, x):
-        u, A, B, C, D = self.get_interval(x)
+        u, A, B, C, D = self.get_interval(x, 0, len(self.intervals))
         # Plug coefficients into polynomial.
         return ((A*x + B)*x + C)*x + D
 
