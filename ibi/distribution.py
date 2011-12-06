@@ -21,6 +21,7 @@ def compute_rdf(lmp_data, dump, out, r_range, b_range, a_range):
     cgini += 'bdf      %f %f %f\n' % tuple(b_range)
     cgini += 'adf      %f %f %f\n' % tuple(a_range)
 
+    #TODO: beadtype isn't always going to be S
     for i in range(len(types)):
         cgini += 'type %d %s\n' %(i+1, types[i])
     cgini += 'bead S\ncenter 0'
@@ -33,7 +34,6 @@ def compute_rdf(lmp_data, dump, out, r_range, b_range, a_range):
 # Gets specific iteration rdf files.
 def iteration_rdf_files(it):  return glob('rdf-cg-%02d*.txt' % it)
 def md_rdf_files():           return glob('rdf/rdf*.txt')
-
 
 # Reads the rdf/bdf/adf files and computes the average.
 def average_rdf(rdf_files):

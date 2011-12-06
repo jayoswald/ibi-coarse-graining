@@ -38,6 +38,8 @@ class InverseBoltzmannIterator:
             self.pair_table.write_lammps('pair.table.%d' % self.iteration_ct,
                                          'SS', self.iteration_ct)
 
+            # Don't rerun lammps if the output file already exisits.
+            # This means you have to delete output files if you want lammps to rerun.
             if not os.path.exists(dump_file): 
                 lammps.run_coarse(param)
 
@@ -52,18 +54,3 @@ class InverseBoltzmannIterator:
             self.pair_table.correction(self.iteration_ct)
             self.iteration_ct += 1
          
-
-"""
-NOT USED ANYMORE!!!
-def main():
-
-    # Make the initial coarse system (this should only need to be one once.
-
-    for i in range(5):
-        distribution.compare('rdf', '.', 'rdf-comparison-it%d.png'%i)
-        
-        r,e,f = force_table.corrected_pair_table(temp, f)
-        lammps.write_table('pair.table.%d'%(i+1), 'SS', r,e,f)
-        param['iteration'] = i+1
-        lammps.run_coarse(param)
-"""     

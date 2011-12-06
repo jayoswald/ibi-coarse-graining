@@ -46,6 +46,7 @@ class LmpData:
                     line = line.split()
                     if len(line) == 2:
                         self.mass[int(line[0])] = float(line[1])
+            # Read atoms.
             if line[0] == 'Atoms':
                 ct = 0
                 self.system_mass = 0.0

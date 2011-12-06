@@ -1,31 +1,43 @@
 #!/usr/bin/env python
 from numpy import * 
 from scipy import optimize
-import interpolator
 import distribution 
+from interpolator import Interpolator
 from matplotlib import pyplot as py
 
 # Boltzmann constant in kcal/mol/K
 kB = 0.0019872041 
-lj96_force = lambda v,x: v[1]*(18.0*v[0]**9/x**10 - 18.0*v[0]**6/x**7)
+# Derivative of a 9/6 Lennard Jones potential.
+# as in http://lammps.sandia.gov/doc/pair_lj96.html
+# v[0]: Sigma, v[1]: Epsilon
+lj96_force = lambda v,r: v[1]*(18.0*v[0]**9/r**10 - 18.0*v[0]**6/r**7)
 
 """
   Computes potential energy and force vs. distance from the radial density function.
 """
 class PairTable:
-    # 
+    # Initializes the pair table from all-atom data.
     def __init__(self, md_temp, md_rdf, plot=False, npts=1000):
-        self.temperature     = md_temp 
-        self.min_distance    = 2.0
+
+        # Sets the temperature of the all-atom simulation.
+        self.temperature  = md_temp 
+
+        # Sets the smallest distance in the pair table.
+        # If LAMMPS simulations crash with pair cutoff error, this needs to be smaller.
+        self.min_distance = 2.0
+
+        # Computes the average distribution functions for the all-atom case.
         self.all_atom_rdf = distribution.average_rdf(distribution.md_rdf_files())
-        
+
+        # Initializes the pair tables as empty lists.        
         self.distance  = []
         self.force     = []
         self.energy    = []
 
-        print 'Computing initial pair table'
+        # Computes the initial potential with the all-atom data.
         self.compute(self.all_atom_rdf)
         
+        # Plot the potential.
         if plot: 
             self.plot_force()
             self.plot_energy()
@@ -33,19 +45,19 @@ class PairTable:
 
     # Computes the pair table and appends it to the current step.
     def compute(self, rdf, npts=500):
-        # Removes any values with a density of zero.
-        # This gets added back later.
-        rdf = rdf[nonzero(rdf[:,1])[0], :]
 
+        # Removes values with a density of zero, they will get added back later.
+        rdf = rdf[nonzero(rdf[:,1])[0], :]
+        # Finds the first index where the density is greater than 0.25*rho.
         i0 = nonzero(rdf[:,1] > 0.25)[0][0]
+
         # Get distance (r) and energy (e).
         r =  rdf[:,0]
         e = -kB*self.temperature*log(rdf[:,1])
 
         # Compute derivative from splines.
-        
         rr     = linspace(r[i0], r[-1], npts)
-        interp = interpolator.Interpolator(r,e)
+        interp = Interpolator(r,e)
         ff = [-interp.derivative(ri) for ri in rr]
 
 
@@ -75,7 +87,7 @@ class PairTable:
         ff *= exp(-1.0/(rr[-1] - rr  + 1e-20))
 
         # Resample ff to fit 1000 pts
-        interp    = interpolator.Interpolator(rr, ff)
+        interp    = Interpolator(rr, ff)
         rr        = linspace(self.min_distance, rr[-1], npts)
         ff        = array([interp(ri) for ri in rr])
 
@@ -125,33 +137,20 @@ class PairTable:
 
     # Computes the corrections to the pair table.
     def correction(self, it):
-        # compute force table based on current iteration.
+        # Compute force table based on current iteration.
         rdf = distribution.iteration_rdf_files(it)
+        # Appends new force, energy, distance, table.
         self.compute(distribution.average_rdf(rdf))
+        # Computes the correction to the force.
         df = self.force[-1] - self.force[0]
         self.force[-1] = self.force[-2] - df
-        
-# Computes the corrected pair table.
-def corrected_pair_table(T, ff0, npts=1000):
-    rri,eei,ffi = pair_table(T, '', npts)
-    rr, ee, ff  = pair_table(T, 'rdf', npts)
 
-    ffi_int = interpolator.Interpolator(rri, ffi)
-    ff_int  = interpolator.Interpolator(rr, ff)
-
-    df = array([ffi_int(r) - f for r,f in zip(rr,ff)])
-    # Remove any sharp kinks.
-    for i in range(1,len(df)-1):
-        if df[i] == max(df[i-1:i+1]) or df[i] == min(df[i-1:i+1]):
-            df[i] = mean(df[i-1:i+1])
-
-    force = ff0 + df
-
-    energy = -simpson_integrate(rr[::-1], force[::-1])[::-1]
-    energy -= energy[-1]
-
-    return rr, force, energy
-
+        # Need to reintegrate energy
+        rr = self.distance[-1]
+        ff = self.force[-1]
+        self.energy[-1] = -simpson_integrate(rr[::-1], ff[::-1])[::-1]
+        self.energy[-1] -= self.energy[-1][-1]
+    
 # Cumulative integration of f using Simpson's rule.
 def simpson_integrate(x,f):
     F = zeros((len(f)))
@@ -161,9 +160,4 @@ def simpson_integrate(x,f):
         # Integral is from i-2 to here + F[i-2]
         F[i] = F[i-2] + (f[i-2]+4.0*f[i-1]+f[i])*(x[i]-x[i-2])/6.0
     return F
-
-# If this script was called as top level, run main.
-if __name__=='__main__': 
-    pair_table()
-
 

@@ -4,12 +4,20 @@ from scipy import constants
 import glob
 
 """
-  Makes chains of atoms.
+  Makes chains of atoms in a box.
+  Each chain is lined up along the x-direction (i.e. not random).
+
   Parameters:
-      Block:   should be like SSSSSHH
-      nblk:    number of blocks in a chain.
+      path:    where to write the lammps input file.
       nchain:  number of chains in the model.
+      block:   one character per bead, example for soft and hard beads: SSSSHH
+      nblk:    number of blocks in a chain.
+      r0:      equilibrium bond length between atoms (doesn't have to be exact)
+      density: target density of the system (in g/cc, used to compute box size).
 """
+# TODO: need to support more than one type of bead.
+#   Each bead needs to have its own mass.
+#   Also need to define r0 for each bead combination (A-A, A-B, B-B).
 def make_system(path, nchain, block, nblk, r0, density):
     print 'Making', nchain, 'chains of', nblk*block
     chain_size = len(block)*nblk
@@ -35,12 +43,14 @@ def make_system(path, nchain, block, nblk, r0, density):
     nz = chain_size 
 
     # Compute size of system based on total mass.
+    # TODO - this is valid for soft bead only!
     mass_per_bead = 72.10776  # in kg/mol
     mass   = mass_per_bead * nbeads
-    
-    density *= 1e-24*constants.N_A # convert from g/cc to g/mol / A^3
+    # convert density from g/cc to g/mol / A^3.
+    density *= 1e-24*constants.N_A 
     print 'density is', density, 'g/mol / A^3'
     volume = mass / density 
+
     lz = nz * r0
     dr = sqrt(volume/lz/(nx*ny))
     lx = nx*sqrt(volume/lz/(nx*ny))
@@ -51,7 +61,7 @@ def make_system(path, nchain, block, nblk, r0, density):
     f.write(' %15.9f %15.9f zlo zhi\n\n'% (0.0, lz))
 
     f.write('Masses\n\n')
-    f.write('1 72.0\n\n') # TODO: not exact
+    f.write('1 %f\n\n'%mass_per_bead) 
 
 
     f.write('Atoms\n\n')
@@ -97,7 +107,7 @@ def make_system(path, nchain, block, nblk, r0, density):
 
 
 # Standalone mode (called from command window).
-# chain_maker.py <nchain=20> <block=SSSSSSS> <nblock=1> <r0=5.0>
+# chain_maker.py <nchain=20> <block=SSSSSSS> <nblock=1> <r0=5.0> <density=1.0>
 def main(args):
     if args==[]:
         print 'Using default values:'
@@ -115,8 +125,9 @@ def main(args):
         if len(args) > 1: blk  = args[1]
         if len(args) > 2: nblk = int(args[2])
         if len(args) > 3: r0   = float(args[3])
-        if len(args) > 4: print 'Warning too many arguments.'
-        make_chains(n, blk, nblk, r0)
+        if len(args) > 4: rho  = float(args[4])
+        if len(args) > 5: print 'Warning too many arguments.'
+        make_chains(n, blk, nblk, r0, rho)
 
 
 # If called at top level.
