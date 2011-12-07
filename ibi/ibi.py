@@ -19,9 +19,11 @@ class InverseBoltzmannIterator:
         self.options      = opt
         self.pair_table   = PairTable(opt.mdtemp, 'rdf', False)
         self.lmp_data     = 'coarse_system.lammps'
-        self.bond_r0 = 4.862605
+#       self.bond_r0 = 12 # hard bond spacing (rough)
+		self.bond_r0 = 4.862605 # soft bond spacing.
         self.bond_k  = 0.259240
-        self.density = 0.831960
+        self.density = 0.831960 # soft density
+#       self.density = 1.002238 # hard density
 
         make_system(self.lmp_data, opt.nchains, opt.blockstr,
                     opt.nblocks, self.bond_r0, self.density)

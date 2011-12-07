@@ -44,7 +44,9 @@ def make_system(path, nchain, block, nblk, r0, density):
 
     # Compute size of system based on total mass.
     # TODO - this is valid for soft bead only!
-    mass_per_bead = 72.10776  # in kg/mol
+    mass_per_bead = 72.10776  # in kg/mol (soft bead)
+    #mass_per_bead = 506.518  # in kg/mol (hard bead)
+     
     mass   = mass_per_bead * nbeads
     # convert density from g/cc to g/mol / A^3.
     density *= 1e-24*constants.N_A 
@@ -53,7 +55,7 @@ def make_system(path, nchain, block, nblk, r0, density):
 
     lz = nz * r0
     dr = sqrt(volume/lz/(nx*ny))
-    lx = nx*sqrt(volume/lz/(nx*ny))
+    lx = nx*dr
     ly = ny * lx / nx
 
     f.write(' %15.9f %15.9f xlo xhi\n'%   (0.0, lx))
@@ -111,23 +113,26 @@ def make_system(path, nchain, block, nblk, r0, density):
 def main(args):
     if args==[]:
         print 'Using default values:'
-        print '    nchain=20, block=14*S, nblock=1, r0=5.0, rvdw=5.0.'
-        make_chains(20, 14*'S')
+        print '    nchain=20, block=14*S, nblock=1, r0=5.0, rho=1.0.'
+        make_system('beadsystem.lammps', 20, 14*'S', 1, 5.0, 1.0)
     elif args==['-h']:
-        print 'Usage:'
-        print '\tchain_maker.py <nchain=20> <block=SSSSSSS> <nblock=1> <r0=5.0>'
+        help_msg  = 'Usage:\n\t'
+        help_msg += 'bead_spring_system <nchain=20> <block=SSSSSSS> '
+        help_msg += '<nblock=1> <r0=5.0> <rho=1.0>'
+        print help_msg
         return None
     else:
         n,nblk = 20,1
         blk    = 8*'S'
         r0     = 0.5
+        rho    = 1.0
         if len(args) > 0: n    = int(args[0])
         if len(args) > 1: blk  = args[1]
         if len(args) > 2: nblk = int(args[2])
         if len(args) > 3: r0   = float(args[3])
         if len(args) > 4: rho  = float(args[4])
         if len(args) > 5: print 'Warning too many arguments.'
-        make_chains(n, blk, nblk, r0, rho)
+        make_system(n, blk, nblk, r0, rho)
 
 
 # If called at top level.
