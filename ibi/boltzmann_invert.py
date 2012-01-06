@@ -10,7 +10,7 @@ kB = 0.0019872041
 # Derivative of a 9/6 Lennard Jones potential.
 # as in http://lammps.sandia.gov/doc/pair_lj96.html
 # v[0]: Sigma, v[1]: Epsilon
-lj96_force = lambda v,r: v[1]*(18.0*v[0]**9/r**10 - 18.0*v[0]**6/r**7)
+lj96_force = lambda v,r: v[1]*(36.0*v[0]**9/r**10 - 24.0*v[0]**6/r**7)
 
 """
   Computes potential energy and force vs. distance from the radial density function.
