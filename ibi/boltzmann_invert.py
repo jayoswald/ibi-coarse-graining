@@ -24,7 +24,7 @@ class PairTable:
 
         # Sets the smallest distance in the pair table.
         # If LAMMPS simulations crash with pair cutoff error, this needs to be smaller.
-        self.min_distance = 2.0
+        self.min_distance = 0.00001
 
         # Computes the average distribution functions for the all-atom case.
         self.all_atom_rdf = distribution.average_rdf(distribution.md_rdf_files())

@@ -4,6 +4,140 @@ from scipy import constants
 import glob
 
 """
+  Class to hold the bead positions and connectivies.
+"""
+class BeadSpringSystem:
+
+    # Initialize an empty system.
+    def __init__(self):
+        self.beads      = []
+        self.bonds      = []
+        self.box_length = 1.0
+        self.bead_masses = []
+
+    # Writes an input file to LAMMPS following format at
+    # http://lammps.sandia.gov/doc/read_data.html
+    def write_to_lammps(self, lmpdatafile):
+        f = open(lmpdatafile, 'w')
+
+        # Get number of unique bead and bond types.
+        num_bead_types = len(set([b[1] for b in self.beads]))
+        num_bond_types = len(set([b[0] for b in self.bonds]))
+
+        # Write header.
+        f.write('LAMMPS 2005 data file for soft beads\n\n')
+        f.write('% 7d atoms\n'        %len(self.beads))
+        f.write('% 7d bonds\n\n'      %len(self.bonds))
+        f.write('% 4d atom types\n'   %num_bead_types)
+        f.write('% 4d bond types\n\n' %num_bond_types)
+        # Write box size.
+        f.write(' %15.9f %15.9f xlo xhi\n'%   (0.0, self.box_length))
+        f.write(' %15.9f %15.9f ylo yhi\n'%   (0.0, self.box_length))
+        f.write(' %15.9f %15.9f zlo zhi\n\n'% (0.0, self.box_length))
+
+        f.write('Masses\n\n')
+        for m in self.bead_masses:
+            f.write('1 %f\n'%m)
+        f.write('\n')
+
+        f.write('Atoms\n\n')
+        for index,bead in enumerate(self.beads):
+            bead = tuple([index+1] + bead[0:2] + list(bead[2]))
+            f.write(' % 6d % 6d % 3d %.3f %.3f %.3f\n' %bead)
+        f.write('\n')
+
+        f.write('Bonds\n\n')
+        for index,bond in enumerate(self.bonds):
+            bond = tuple([index+1] + list(bond))
+            f.write('% 6d % 3d % 6d % 6d\n' %bond)
+        f.close()
+
+"""
+  Creates a bead spring system. 
+    Input parameters:
+        block:       definition of a chain subblock (e.g. 'AAB').
+        nchain:      the number of chains in the system.
+        nblk:        the number of blocks in a chain.
+        bond_length: the distance between bonded atoms.
+        box_length:  the size of the sides of the cubic system box.
+"""
+def create(block, nchain, nblk, bond_length, box_length):
+
+    # Define atom_types such that for each bead there is a unique number.
+    atom_types = {}
+    for i in block:
+        if i not in atom_types:
+            atom_types[i] = len(atom_types) + 1
+
+    # Gets bond types for each combination of pairs of beads.
+    bond_types = {}
+    for i in range(len(block)-1):
+        pair = min(block[i:i+2]) +  max(block[i:i+2])
+        if pair not in bond_types:
+            bond_types[pair] = len(bond_types)+1
+    # If there are more than one blocks then we need to check last, first.
+    if nblk > 1:
+        pair = ''.join(sorted([block[0], block[-1]]))
+        if pair not in bond_types:
+            bond_types[pair] = len(bond_types)+1
+
+    ## FOR DEBUGGING, REMOVE LATER
+    print 'Atom types are:', atom_types
+    print 'Bond types are:', bond_types 
+    ##
+
+    # Given the index of an atom in a chain, return the type.
+    def get_atom_type(i):
+        atom = block[i%len(block)]
+        return atom_types[atom]
+
+    # Given the index, i of the first atom in a chain, 
+    # return the bond type between i and i+1.
+    def get_bond_type(i):
+        itype = block[(i)  %len(block)]
+        jtype = block[(i+1)%len(block)]
+        pair = min(itype,jtype) + max(itype,jtype)
+        return bond_types[pair]
+
+    system = BeadSpringSystem()
+    system.box_length = box_length
+    system.atom_types = atom_types
+    chain_size = len(block)*nblk
+
+    def random_unit():
+        r = random.rand(3) - 0.5
+        r *= 1.0/linalg.norm(r)
+        return r
+        
+
+    for molecule in range(nchain):
+
+        first_bead = system.box_length*random.rand(3)
+        system.beads.append([molecule, get_atom_type(0), first_bead])
+
+        for z in range(chain_size - 1):
+            ran_vect  = bond_length * random_unit()
+            next_bead = system.beads[-1][2] + ran_vect
+
+            # Check if angle ijk is not near zero degrees.
+            if z > 1:
+                while True:
+                    rij = system.beads[-2][2] - system.beads[-1][2]
+                    rjk = next_bead - system.beads[-1][2]
+                    if dot(rij,rjk) < 0.9*bond_length**2: break
+                    ran_vect  = bond_length * random_unit()
+                    next_bead = system.beads[-1][2] + ran_vect
+
+            btype = get_bond_type(z)
+            system.bonds.append([btype, len(system.beads), len(system.beads)+1])
+
+            # Add the bead to the system.
+            atype = get_atom_type(z+1)
+            system.beads.append([molecule, get_atom_type(z+1), next_bead])
+    return system
+
+
+"""
   Makes chains of atoms in a box.
   Each chain is lined up along the x-direction (i.e. not random).
 
@@ -18,95 +152,32 @@ import glob
 # TODO: need to support more than one type of bead.
 #   Each bead needs to have its own mass.
 #   Also need to define r0 for each bead combination (A-A, A-B, B-B).
-def make_system(path, nchain, block, nblk, r0, density):
-    print 'Making', nchain, 'chains of', nblk*block
-    chain_size = len(block)*nblk
-    nbeads     = chain_size*nchain
-    nbonds     = (chain_size-1)*nchain
+def make_system(path, nchain, block, nblk, bond_length, density):
+    
+    # Beads A,B
+    # A = ....
+    # B = ....
 
-    # Counts the number of unique species in block.
-    atomtypes = list(set(block))
-    print 'Bead types are: {', ' '.join(atomtypes),'}'
-    natomtypes = len(atomtypes)
-    # Number of bonds is 1 + 2 + ... + natomtypes.
-    nbondtypes = sum([i+1 for i in range(natomtypes)]) 
-
-    f = open(path, 'w')
-    f.write('LAMMPS 2005 data file for soft beads\n\n')
-    f.write('% 7d atoms\n'        %nbeads)
-    f.write('% 7d bonds\n\n'      %nbonds)
-    f.write('% 4d atom types\n'   %natomtypes)
-    f.write('% 4d bond types\n\n' %nbondtypes)
-
-    nx = ceil(sqrt(nchain))
-    ny = ceil(float(nchain)/nx)
-    nz = chain_size 
-
-    # Compute size of system based on total mass.
-    # TODO - this is valid for soft bead only!
     mass_per_bead = 72.10776  # in kg/mol (soft bead)
     #mass_per_bead = 506.518  # in kg/mol (hard bead)
-     
-    mass   = mass_per_bead * nbeads
-    # convert density from g/cc to g/mol / A^3.
+
+    #TODO: won't be true when blocks aren't the same bead.
+    mass_per_block = len(block)*mass_per_bead
+    mass   = mass_per_block*nblk*nchain
+
+    print 'density is', density, 'g/cc'
     density *= 1e-24*constants.N_A 
     print 'density is', density, 'g/mol / A^3'
     volume = mass / density 
+    print 'volume is', volume, 'A^3'
 
-    lz = nz * r0
-    dr = sqrt(volume/lz/(nx*ny))
-    lx = nx*dr
-    ly = ny * lx / nx
+    box_length = volume**(1.0/3.0)
 
-    f.write(' %15.9f %15.9f xlo xhi\n'%   (0.0, lx))
-    f.write(' %15.9f %15.9f ylo yhi\n'%   (0.0, ly))
-    f.write(' %15.9f %15.9f zlo zhi\n\n'% (0.0, lz))
+    system = create(block, nchain, nblk, bond_length, box_length)
 
-    f.write('Masses\n\n')
-    f.write('1 %f\n\n'%mass_per_bead) 
-
-
-    f.write('Atoms\n\n')
-    print 'packing in a', nx, 'by', ny, 'grid'
-
-    # Returns the atom type for position z in a chain.
-    def atom_type(z):
-        blockidx = z % len(block)
-        return atomtypes.index(block[blockidx])+1 
-    
-    # Make all atoms.
-    for m in range(nchain):
-        x = m % nx
-        y = floor(m / nx)
-        x *= dr
-        y *= dr
-        for z in range(nz):
-            tag   = z + m*nz + 1
-            atype = atom_type(z)
-            z *= r0
-            atom = (tag, m, atype, x, y, z)
-            f.write(' % 6d % 6d % 3d %.3f %.3f %.3f\n' %atom)
-
-    f.write('\nBonds\n\n')
-    ct = 0
-
-    bond_types = []
-    for m in range(nchain):
-        for z in range(nz-1):
-            ct  += 1
-
-            atypes = [atom_type(z), atom_type(z+1)]
-            btype = [min(atypes), max(atypes)]
-            if not btype in bond_types:
-                bond_types.append(btype)
-            btype = bond_types.index(btype)+1
-
-            tag   = z + m*nz + 1
-            bond  = (ct, btype, tag, tag+1)
-            f.write('% 6d % 3d % 6d % 6d\n' %bond)
-    print 'Bond types are:', bond_types
-    f.close()
-
+    # TODO - needs to be fixed.
+    system.bead_masses = [mass_per_bead]
+    system.write_to_lammps(path)
 
 # Standalone mode (called from command window).
 # chain_maker.py <nchain=20> <block=SSSSSSS> <nblock=1> <r0=5.0> <density=1.0>

@@ -40,15 +40,24 @@ read_data     %(data)s
 bond_style    harmonic
 bond_coeff    1 %(k)f %(r0)f
 pair_style    table linear 1000 
-pair_coeff    1 1 pair.table.%(iteration)d SS
+pair_coeff    * * pair.table.%(iteration)d SS
 special_bonds lj/coul 0.0 1.0 1.0 
-#dump          1 all custom 100 dump-equil.lammpstrj id mol xu yu zu
+#dump          1 all custom 1 dump-equil.lammpstrj id mol xu yu zu
 thermo        200
 thermo_style  custom step temp press ke pe etotal
+neighbor      10.0 bin
+neigh_modify  every 1 delay 0
 
+# Will move atoms to reasonable distances apart
+fix           1 all nve/limit 2.0
+fix           2 all temp/berendsen 500 500 100
+timestep      20
+run           2000
+
+unfix         1
+unfix         2
 fix           1 all nvt temp %(T)f %(T)f 100
 velocity      all create %(T)f 123456 
-timestep      50
 run           10000
 write_restart restart.equil
 """
