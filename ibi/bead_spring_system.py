@@ -124,7 +124,10 @@ def create(block, nchain, nblk, bond_length, box_length):
                 while True:
                     rij = system.beads[-2][2] - system.beads[-1][2]
                     rjk = next_bead - system.beads[-1][2]
-                    if dot(rij,rjk) < 0.9*bond_length**2: break
+
+                    cos_angle_ijk = dot(rij,rjk) / bond_length**2
+
+                    if cos_angle_ijk < 0.8: break
                     ran_vect  = bond_length * random_unit()
                     next_bead = system.beads[-1][2] + ran_vect
 
