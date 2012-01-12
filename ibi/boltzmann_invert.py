@@ -17,7 +17,7 @@ lj96_force = lambda v,r: v[1]*(36.0*v[0]**9/r**10 - 24.0*v[0]**6/r**7)
 """
 class PairTable:
     # Initializes the pair table from all-atom data.
-    def __init__(self, md_temp, md_rdf, plot=False, npts=1000):
+    def __init__(self, md_temp, md_rdf, plot=False):
 
         # Sets the temperature of the all-atom simulation.
         self.temperature  = md_temp 
@@ -25,6 +25,7 @@ class PairTable:
         # Sets the smallest distance in the pair table.
         # If LAMMPS simulations crash with pair cutoff error, this needs to be smaller.
         self.min_distance = 0.00001
+        self.npts = 1000
 
         # Computes the average distribution functions for the all-atom case.
         self.all_atom_rdf = distribution.average_rdf(distribution.md_rdf_files())
@@ -44,7 +45,9 @@ class PairTable:
             py.show()
 
     # Computes the pair table and appends it to the current step.
-    def compute(self, rdf, npts=500):
+    def compute(self, rdf):
+        cut_beg    = 13.0
+        cut_end    = 15.0
 
         # Removes values with a density of zero, they will get added back later.
         rdf = rdf[nonzero(rdf[:,1])[0], :]
@@ -55,11 +58,15 @@ class PairTable:
         r =  rdf[:,0]
         e = -kB*self.temperature*log(rdf[:,1])
 
+
+        dr_final = (cut_end-self.min_distance)/self.npts
+        # Figure out what range we need
+
         # Compute derivative from splines.
-        rr     = linspace(r[i0], r[-1], npts)
+        rr     = arange(cut_end, r[i0], -dr_final)[::-1]
+
         interp = Interpolator(r,e)
         ff = [-interp.derivative(ri) for ri in rr]
-
 
         # Subtract 96 part away and smooth.
         v0 = [5.0, 0.01] 
@@ -74,22 +81,17 @@ class PairTable:
 
         ff += lj96_force(v, rr)
 
+
         # Add more values to short distance to make sure that 
         # LAMMPS run won't fail when pair distance < table min.
-        dr   = rr[1]-rr[0]
-        rpad = arange(rr[0]-dr, self.min_distance-dr, -dr)[::-1]
+        rpad = arange(self.min_distance, rr[0]-0.5*dr_final, dr_final)
         fpad = lj96_force(v, rpad) + ff[0] - lj96_force(v, rr[0])
         rr   = concatenate((rpad, rr))
         ff   = concatenate((fpad, ff))
-
-        # Make ff die off smoothly at rcut.
-        ff -= (ff[-1]/rr[-1]) / rr
-        ff *= exp(-1.0/(rr[-1] - rr  + 1e-20))
-
-        # Resample ff to fit 1000 pts
-        interp    = Interpolator(rr, ff)
-        rr        = linspace(self.min_distance, rr[-1], npts)
-        ff        = array([interp(ri) for ri in rr])
+    
+        # Now we cut off forces smoothly at any point past max_attraction.
+        ff[rr>cut_beg] *= 0.5*(1.0+cos(pi*(rr[rr>cut_beg]-cut_beg)/(cut_end-cut_beg)))
+        ff[rr>cut_end] = 0.0
 
         # Compute energy by integrating forces.
         # Integrating backwards reduces noise.
