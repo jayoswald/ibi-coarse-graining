@@ -192,6 +192,7 @@ namespace cg {
                 r.y = str2dbl(pieces[step->yc]);
                 r.z = str2dbl(pieces[step->zc]);
 
+                // Store coordinates scaled no matter what the input is.
                 if (!step->xs) r.x = to_scaled(r.x, step->dx);
                 if (!step->ys) r.y = to_scaled(r.y, step->dy);
                 if (!step->zs) r.z = to_scaled(r.z, step->dz);
