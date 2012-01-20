@@ -26,12 +26,13 @@ def main():
                       type='int',   dest='nblocks', default=14)
     parser.add_option('',   '--block',
                       dest='blockstr', default='S')
-
+    parser.add_option('',   '--iterations',
+                      type='int', dest='iterations', default=5)
     options, args = parser.parse_args()
 
     iterator = ibi.ibi.InverseBoltzmannIterator(options)
 
-    iterator.iterate(5)
+    iterator.iterate(options.iterations)
 
 if __name__ == '__main__': main() 
 
