@@ -157,60 +157,60 @@ def create(block, nchain, nblk, bond_length, box_length):
 #   Also need to define r0 for each bead combination (A-A, A-B, B-B).
 def make_system(path, nchain, block, nblk, bond_length, density):
     
-    # Beads A,B
-    # A = ....
-    # B = ....
+    #TODO: only works for H,S beads - probably should use a file to store this. 
+    bead_mass = {'H': 506.518, 'S':72.10776}
 
-    mass_per_bead = 72.10776  # in kg/mol (soft bead)
-    #mass_per_bead = 506.518  # in kg/mol (hard bead)
+    mass_per_block = 0.0
+    for bead in block:
+        mass_per_block += bead_mass[bead]
 
-    #TODO: won't be true when blocks aren't the same bead.
-    mass_per_block = len(block)*mass_per_bead
     mass   = mass_per_block*nblk*nchain
-
-    print 'density is', density, 'g/cc'
+    print '# of beads:   ', nblk*nchain*len(block)
+    print 'Density is:    %0.4f g/cc' % density
     density *= 1e-24*constants.N_A 
-    print 'density is', density, 'g/mol / A^3'
+    print 'Density is:    %0.4f g/mol/A^3' % density
     volume = mass / density 
-    print 'volume is', volume, 'A^3'
 
     box_length = volume**(1.0/3.0)
+    print 'Volume is:     %0.1f A^3'% volume
+    print 'box length is: %0.3f A' % box_length
 
     system = create(block, nchain, nblk, bond_length, box_length)
 
-    # TODO - needs to be fixed.
-    system.bead_masses = [mass_per_bead]
+    # Get the masses of each type of bead in the order that they appear.
+    system.bead_masses = []
+    bead_types = []
+    for bead in block:
+        if not bead in bead_types:
+            bead_types.append(bead)
+            system.bead_masses.append(bead_mass[bead])
+
+    print zip(bead_types, system.bead_masses) 
     system.write_to_lammps(path)
 
 # Standalone mode (called from command window).
-# chain_maker.py <nchain=20> <block=SSSSSSS> <nblock=1> <r0=5.0> <density=1.0>
 def main(args):
-    if args==[]:
-        print 'Using default values:'
-        print '    nchain=20, block=14*S, nblock=1, r0=5.0, rho=1.0.'
-        make_system('beadsystem.lammps', 20, 14*'S', 1, 5.0, 1.0)
-    elif args==['-h']:
-        help_msg  = 'Usage:\n\t'
-        help_msg += 'bead_spring_system <nchain=20> <block=SSSSSSS> '
-        help_msg += '<nblock=1> <r0=5.0> <rho=1.0>'
-        print help_msg
-        return None
-    else:
-        n,nblk = 20,1
-        blk    = 8*'S'
-        r0     = 0.5
-        rho    = 1.0
-        if len(args) > 0: n    = int(args[0])
-        if len(args) > 1: blk  = args[1]
-        if len(args) > 2: nblk = int(args[2])
-        if len(args) > 3: r0   = float(args[3])
-        if len(args) > 4: rho  = float(args[4])
-        if len(args) > 5: print 'Warning too many arguments.'
-        make_system(n, blk, nblk, r0, rho)
 
+
+    parser = OptionParser()
+    parser.add_option('', '--num_chains', type='int', dest='nchains', default=40,
+                      help='sets number of chains')
+    parser.add_option('', '--num-blocks', type='int', dest='nblocks', default=14,
+                      help='sets number of blocks')
+    parser.add_option('', '--block', dest='blockstr', default='S',
+                      help='sets beads in block')
+    parser.add_option('', '--filename',  dest='path', default='bead_system.lammps',
+                      help='specifies output file')
+    parser.add_option('','--bond_length', type='float', dest='r0', default=5.0,
+                      help='sets the bond length')
+    parser.add_option('','--density', type='float', dest='rho', default=1.0,
+                      help='sets the system density')
+    opt,args = parser.parse_args()
+    make_system(opt.path, opt.nchains, opt.blockstr, opt.nblocks, opt.r0, opt.rho)
 
 # If called at top level.
 if __name__ == '__main__':
     import sys
+    from optparse import OptionParser
     main(sys.argv[1::])
 

@@ -8,18 +8,20 @@ use_pbs = False
 def run_coarse(param):
     ifile  = ['in.cg-ibi-1', 'in.cg-ibi-2']
     lmpin  = [in_cg1 %param, in_cg2 %param]
+    modes  = ['equil',  'sample']
 
-    for i,s in zip(ifile, lmpin):
-        f = open(i, 'w')
+    for i,s,mode in zip(ifile, lmpin, modes):
+	log = 'log-%s-%d.lammps' % (mode, param['iteration'])
+        f   = open(i, 'w')
         f.write(s)
         f.close()
-        run_lammps(i, param['nproc'])
+        run_lammps(i, param['nproc'], log)
     
 # Runs LAMMPS via the command line.
-def run_lammps(inp, nproc):
+def run_lammps(inp, nproc, log):
     lmp = paths.lammps
-    if use_pbs: cmd = 'mpiexec %s -in %s' %(lmp, inp)
-    else:       cmd = 'mpiexec -n %d %s -in %s' %(nproc, lmp, inp)
+    if use_pbs: cmd = 'mpiexec %s -in %s -l %s' %(lmp, inp, log)
+    else:       cmd = 'mpiexec -n %d %s -in %s -l %s' %(nproc, lmp, inp, log)
     os.system(cmd)
 
 # Writes a table to a file designated by path.
@@ -51,7 +53,7 @@ neigh_modify  every 1 delay 0
 # Will move atoms to reasonable distances apart
 fix           1 all nve/limit 2.0
 velocity      all create 100.0 1234
-fix           2 all temp/berendsen 500 500 20
+fix           2 all temp/berendsen 500 500 15
 timestep      10
 run           2000
 
