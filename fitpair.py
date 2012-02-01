@@ -15,14 +15,14 @@ import sys
 """
 
 # Number of Gaussian functions to use.
-num_gaussian = 9
+num_gaussian = 11
 
 
 # Computes the energy of a Lennard Jones 96 potential.
 def lj96(v,x):
     sig = v[0]
     A,B = v[1], v[2]
-    xs = x-sig
+    xs  = x-sig
     return A*xs**-9 + B*xs**-6
 
 # Computes the force from a Lennard Jones 96 potential.
@@ -55,11 +55,14 @@ def gaussforce(v, x):
     return f
 
 # Read the data file.
-try:    
-    data = genfromtxt(sys.argv[1], skip_header=2)
+try:
+    old_pair_file = sys.argv[1]
+    data = genfromtxt(old_pair_file, skip_header=2)
 except:
-    print 'Reading pair.table.3'
-    data = genfromtxt('pair.table.3', skip_header=2)
+    print 'Cannot read pair data file, or none specified'
+    sys.exit(1)
+
+# Gets the range of the data where force is not too big.
 pr   = data[:,3] < 5.0
 
 r = data[pr,1]
@@ -74,7 +77,7 @@ vlj,status = leastsq(error1, vlj)
 error2 = lambda v: lj96(vlj, r) + gauss(v, r) - e
 
 v = []
-for x in linspace(2,10,num_gaussian):
+for x in linspace(4,15,num_gaussian):
     v += [x, 1.0, 1.0]
 
 v,status = leastsq(error2, v, maxfev=8000)
@@ -92,3 +95,18 @@ ffit = gaussforce(v,r) + lj96force(vlj,r)
 figure(2)
 plot(r,f, 'g-', r, ffit, 'b-')
 show()
+
+
+## Now we want to save the data back.
+data[:,2] = gauss(v, data[:,1]) + lj96(vlj, data[:,1])
+data[:,3] = gaussforce(v, data[:,1]) + lj96force(vlj, data[:,1])
+
+fid    = open(old_pair_file, 'r')
+header = fid.readline() + fid.readline()  + fid.readline()
+
+output = 'pair.table.fit'
+fout   = open(output, 'w')
+fout.write(header)
+savetxt(fout, data, delimiter=' ')
+fout.close()
+
