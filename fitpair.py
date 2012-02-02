@@ -91,11 +91,16 @@ for i in range(len(v)/3):
 
 figure(1)
 plot(r, e, 'g-', r, efit, 'b-')
-
+xlabel('Distance (A)')
+ylabel('Energy (kJ/mol)')
+legend(['IBI values', 'fit'])
 
 ffit = gaussforce(v,r) + lj96force(vlj,r)
 figure(2)
 plot(r,f, 'g-', r, ffit, 'b-')
+legend(['IBI values', 'fit'])
+xlabel('Distance (A)')
+ylabel('Force (kJ/A/mol)')
 show()
 
 
