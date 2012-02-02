@@ -20,7 +20,7 @@ def main():
                       type='int',   dest='nproc' ,  default=4)
     parser.add_option('',   '--md-temperature', 
                       type='float', dest='mdtemp',  default=300.0)
-    parser.add_option('',   '--num_chains',        
+    parser.add_option('',   '--num-chains',        
                       type='int',   dest='nchains', default=40)
     parser.add_option('',   '--num-blocks',
                       type='int',   dest='nblocks', default=14)

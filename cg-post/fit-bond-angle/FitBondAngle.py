@@ -33,11 +33,15 @@ def read_xy(filename):
 
 # Fits the distribution for bond lengths or angles.
 def fit_distribution(x, y, term):
-    kBT = 300.0 * 8.6173324e-5 # in eV
+    kB  = 0.00198720637 # in kcal/mol/K
+    kBT = 300.0 * kB    # in kcal/mol
     # Fit bond distribution.
     if term=='b':        
         xlab = 'Bond length'
-        p    = [0.6, 5.0, 1]
+
+        x0 = x[y == max(y)]
+
+        p    = [0.6, x0, 1]
         g_x  = lambda p: p[2]*x*x*exp(-p[0]*(x-p[1])**2 / (2.0*kBT)) 
     # Fit angle distribution.
     elif term=='a':

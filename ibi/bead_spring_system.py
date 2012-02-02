@@ -116,6 +116,9 @@ def create(block, nchain, nblk, bond_length, box_length):
         system.beads.append([molecule, get_atom_type(0), first_bead])
 
         for z in range(chain_size - 1):
+
+            # What bond type am I and what is the length
+            # bond_type =     
             ran_vect  = bond_length * random_unit()
             next_bead = system.beads[-1][2] + ran_vect
 
@@ -158,7 +161,7 @@ def create(block, nchain, nblk, bond_length, box_length):
 def make_system(path, nchain, block, nblk, bond_length, density):
     
     #TODO: only works for H,S beads - probably should use a file to store this. 
-    bead_mass = {'H': 506.518, 'S':72.10776}
+    bead_mass = {'H': 253.261245, 'S':72.10776}
 
     mass_per_block = 0.0
     for bead in block:

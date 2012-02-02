@@ -63,7 +63,7 @@ except:
     sys.exit(1)
 
 # Gets the range of the data where force is not too big.
-pr   = data[:,3] < 5.0
+pr   = data[:,3] < 2.0
 
 r = data[pr,1]
 e = data[pr,2]
@@ -83,9 +83,11 @@ for x in linspace(4,15,num_gaussian):
 v,status = leastsq(error2, v, maxfev=8000)
 efit = gauss(v, r) + lj96(vlj, r)
 print 'LJ parameters'
-print reshape(vlj,(1,3))
+print 'sig = %.3f, A = %.3f, B = %.3f' %tuple(vlj)
+
 print 'Gaussian parameters'
-print reshape(v,(-1,3))
+for i in range(len(v)/3):
+    print 'x0 = % 4.3f, a = % 4.3f, k = % 5.3f' %tuple(v[3*i:3*(i+1)])
 
 figure(1)
 plot(r, e, 'g-', r, efit, 'b-')
