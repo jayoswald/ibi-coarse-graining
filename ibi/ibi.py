@@ -66,7 +66,7 @@ class InverseBoltzmannIterator:
             a_range = (0.0,    180.0,  1.0)
 
             compute_rdf(self.lmp_data, dump_file, tag, r_range, b_range, a_range)
-            compare(self.iteration_ct, 'rdf-%d.png'%i)
+            compare(self.iteration_ct, 'rdf-%d.eps'%i)
             self.pair_table.correction(self.iteration_ct)
             self.iteration_ct += 1
          
