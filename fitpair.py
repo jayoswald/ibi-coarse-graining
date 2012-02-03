@@ -63,7 +63,7 @@ except:
     sys.exit(1)
 
 # Gets the range of the data where force is not too big.
-pr   = data[:,3] < 2.0
+pr   = data[:,3] < 5.0
 
 r = data[pr,1]
 e = data[pr,2]
@@ -94,6 +94,7 @@ plot(r, e, 'g-', r, efit, 'b-')
 xlabel('Distance (A)')
 ylabel('Energy (kJ/mol)')
 legend(['IBI values', 'fit'])
+savefig('fit-energy.eps')
 
 ffit = gaussforce(v,r) + lj96force(vlj,r)
 figure(2)
@@ -101,7 +102,7 @@ plot(r,f, 'g-', r, ffit, 'b-')
 legend(['IBI values', 'fit'])
 xlabel('Distance (A)')
 ylabel('Force (kJ/A/mol)')
-show()
+savefig('fit-force.eps')
 
 
 ## Now we want to save the data back.
