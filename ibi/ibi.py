@@ -28,9 +28,16 @@ class InverseBoltzmannIterator:
         soft_k   = 7.193422
         soft_rho = 0.831960   # soft density
 
-        self.bond_r0 = hard_r0
-        self.bond_k  = hard_k
-        self.density = hard_rho
+        use_hard = True
+
+        if use_hard:
+            self.bond_r0 = hard_r0
+            self.bond_k  = hard_k
+            self.density = hard_rho
+        else:
+            self.bond_r0 = soft_r0
+            self.bond_k  = soft_k
+            self.density = soft_rho           
 
         make_system(self.lmp_data, opt.nchains, opt.blockstr,
                     opt.nblocks, self.bond_r0, self.density)

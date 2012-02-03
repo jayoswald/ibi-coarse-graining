@@ -1,2 +1,5 @@
 #!/bin/bash
-../../cg-ibi.py --block "SS" --num-blocks 1 --num_chains 500
+
+
+rm -f *.ini in.* coarse* log-* pair.* 
+../../cg-ibi.py --block "HH" --num-blocks 1 --num-chains 500
