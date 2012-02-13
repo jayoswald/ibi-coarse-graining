@@ -178,6 +178,8 @@ def make_system(path, nchain, block, nblk, bond_length, density):
     print 'Volume is:     %0.1f A^3'% volume
     print 'box length is: %0.3f A' % box_length
 
+    # TODO: we need to pass this in from input somehow.
+    random.seed(1237)
     system = create(block, nchain, nblk, bond_length, box_length)
 
     # Get the masses of each type of bead in the order that they appear.

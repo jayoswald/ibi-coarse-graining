@@ -74,7 +74,9 @@ read_restart  restart.equil
 fix           1 all nvt temp %(T)f %(T)f 200
 pair_coeff    1 1 pair.table.%(iteration)d SS
 thermo        100
-dump          1 all custom 250 %(dump)s id mol xs ys zs
+compute       msd     all msd
+thermo_style  custom step temp press vol c_msd[4] pe ke
+dump          1 all custom 250 %(dump)s id mol xs ys zs vx vy vz
 run           20000
 write_restart restart.samples
 """
