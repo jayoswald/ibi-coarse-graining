@@ -21,11 +21,16 @@ int main(int n, char **argv)
         for (int b2=b1; b2<model.num_bead_types(); ++b2) {
             cg::Histogram rdf, bdf, adf;
             cout << "Computing " << b1 << ":" << b2 << " correlations.\n";
+            #pragma omp parallel for
             for (int ts=0; ts<model.num_timesteps(); ++ts) {                    
-                    rdf += model.compute_rdf(b1, b2, ts);
-                    bdf += model.compute_bdf(b1, b2, ts);
-                    //adf += model.compute_adf(b1, b2, b3, ts);
-        
+                auto new_rdf = model.compute_rdf(b1, b2, ts);
+                auto new_bdf = model.compute_bdf(b1, b2, ts);
+                //adf += model.compute_adf(b1, b2, b3, ts);
+
+                #pragma omp critical 
+                rdf += new_rdf;
+                #pragma omp critical 
+                bdf += new_bdf;
             }
 
             if (rdf.histogram.size()==0) return 0;

@@ -6,8 +6,8 @@ SRC=$(wildcard *.cpp)
 OBJ=$(SRC:.cpp=.o)
 ###############################################################################
 
-CFLAGS=-c -std=c++0x
-LFLAGS=-static
+CFLAGS=-c -std=c++0x -fopenmp
+LFLAGS=-static -fopenmp
 
 all: CFLAGS+=-O2
 all: $(SRC) $(EXE)
