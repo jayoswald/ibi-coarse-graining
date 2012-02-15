@@ -26,6 +26,8 @@ def main():
                       type='int',   dest='nblocks', default=14)
     parser.add_option('',   '--block',
                       dest='blockstr', default='S')
+    parser.add_option('',   '--system_type',
+                      dest='system_type', default='soft')
     parser.add_option('',   '--iterations',
                       type='int', dest='iterations', default=5)
     options, args = parser.parse_args()

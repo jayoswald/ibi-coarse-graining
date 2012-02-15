@@ -98,11 +98,16 @@ def create(block, nchain, nblk, bond_length, box_length):
         jtype = block[(i+1)%len(block)]
         pair = min(itype,jtype) + max(itype,jtype)
         return bond_types[pair]
+ 
+    # return the bond type pair 'HH,HS.....'
+    def get_bond_pair(i):
+        return [k for k, v in bond_types.iteritems() if v == i][0]
 
     system = BeadSpringSystem()
     system.box_length = box_length
     system.atom_types = atom_types
     chain_size = len(block)*nblk
+    system.bond_types = bond_types
 
     def random_unit():
         r = random.rand(3) - 0.5
@@ -118,23 +123,28 @@ def create(block, nchain, nblk, bond_length, box_length):
         for z in range(chain_size - 1):
 
             # What bond type am I and what is the length
-            # bond_type =     
-            ran_vect  = bond_length * random_unit()
+            # bond_type =
+            btype     = get_bond_type(z)
+            bpair     = get_bond_pair(btype)     
+            ran_vect  = bond_length[bpair] * random_unit()
             next_bead = system.beads[-1][2] + ran_vect
 
             # Check if angle ijk is not near zero degrees.
             if z > 1:
                 while True:
-                    rij = system.beads[-2][2] - system.beads[-1][2]
-                    rjk = next_bead - system.beads[-1][2]
+                    btypeij = get_bond_type(z-1)
+                    btypejk = get_bond_type(z)
+                    bpairij = get_bond_pair(btypeij)
+                    bpairjk = get_bond_pair(btypejk)
+                    rij     = system.beads[-2][2] - system.beads[-1][2]
+                    rjk     = next_bead - system.beads[-1][2]
 
-                    cos_angle_ijk = dot(rij,rjk) / bond_length**2
+                    cos_angle_ijk = dot(rij,rjk) / (bond_length[bpairjk] * bond_length[bpairij])
 
                     if cos_angle_ijk < 0.8: break
-                    ran_vect  = bond_length * random_unit()
+                    ran_vect  = bond_length[bpairjk] * random_unit()
                     next_bead = system.beads[-1][2] + ran_vect
 
-            btype = get_bond_type(z)
             system.bonds.append([btype, len(system.beads), len(system.beads)+1])
 
             # Add the bead to the system.
@@ -192,9 +202,9 @@ def make_system(path, nchain, block, nblk, bond_length, density):
 
     print zip(bead_types, system.bead_masses) 
     system.write_to_lammps(path)
-
+    return system.bond_types
 # Standalone mode (called from command window).
-def main(args):
+def main():
 
 
     parser = OptionParser()
@@ -206,7 +216,7 @@ def main(args):
                       help='sets beads in block')
     parser.add_option('', '--filename',  dest='path', default='bead_system.lammps',
                       help='specifies output file')
-    parser.add_option('','--bond_length', type='float', dest='r0', default=5.0,
+    parser.add_option('','--bond_length', type='float', dest='r0', default= 5,
                       help='sets the bond length')
     parser.add_option('','--density', type='float', dest='rho', default=1.0,
                       help='sets the system density')
@@ -217,5 +227,4 @@ def main(args):
 if __name__ == '__main__':
     import sys
     from optparse import OptionParser
-    main(sys.argv[1::])
-
+    main()
