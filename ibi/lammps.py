@@ -72,7 +72,6 @@ pair_style    table linear 1000
 %(pair_coeff)s
 special_bonds lj/coul 0.0 1.0 1.0 
 #dump          1 all custom 1 dump-equil.lammpstrj id mol xs ys zs
-thermo        200
 thermo_style  custom step temp press ke pe etotal
 neighbor      5.0 bin
 neigh_modify  every 1 delay 0
@@ -82,15 +81,19 @@ fix           1 all nve/limit 2.0
 velocity      all create 100.0 1234
 fix           2 all temp/berendsen 500 500 15
 timestep      10
-run           2000
+thermo        100
+run           500
 
-minimize     1e-6 1e-6 1000 1000
+# Minimizes energy.
+velocity      all scale 10
+minimize      1e-6 1e-6 5000 5000
 
+# Equilibriate at temperature.
 unfix         1
 unfix         2
 fix           1 all nvt temp %(T)f %(T)f 100
-velocity      all create %(T)f 123456 
 timestep      50
+thermo        500
 run           10000
 write_restart restart.equil
 """
@@ -100,10 +103,10 @@ in_cg2 = """
 read_restart  restart.equil
 fix           1 all nvt temp %(T)f %(T)f 200
 %(pair_coeff)s
-thermo        100
 compute       msd     all msd
 thermo_style  custom step temp press vol c_msd[4] pe ke
 dump          1 all custom 250 %(dump)s id type mol xs ys zs vx vy vz
+thermo        1000
 run           20000
 write_restart restart.samples
 """
