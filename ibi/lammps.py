@@ -7,30 +7,33 @@ use_pbs = False
 # Starts the initial lammps.
 def run_coarse(param):
     ifile  = ['in.cg-ibi-1', 'in.cg-ibi-2']
-
-    systype = param['systemtype']
     
     # to get the bond type for lammps input file'HH' 'SS' 'SH'
     def get_bond_pair(i):
         return [k for k, v in btype.iteritems() if v == i][0]
+    # adding bond coeff
+    bond_coeff = ''
+    for b in param['btype']:
+        bcoeff = 'bond_coeff    '+str(param['btype'][b])+' '+str(param['k'][b])+' '+str(param['r0'][b])+'\n'
+        bond_coeff = bond_coeff+bcoeff
+    #adding vailable pair coeff
+    pair_coeff = ''
+    for b in param['pair_known']:
+        a1 = param['atype'][b[0]]
+        a2 = param['atype'][b[1]]
+        pcoeff = 'pair_coeff    '+str(a1)+' '+str(a2)+' '+param['pair_known'][b]+' '+b+'\n'
+        pair_coeff = pair_coeff+pcoeff
+    # adding missing pair
+    m1 = param['atype'][param['misspair'][0]]
+    m2 = param['atype'][param['misspair'][1]]
 
+    pair_coeff = pair_coeff+'pair_coeff    '+str(m1)+' '+str(m2)+' '+' pair.table.'+str(param['iteration'])+' '+param['misspair']+ '\n'
 
-
-    if systype == "soft":
-        pair_coeff = {'r1':param['r0']['SS'],'r2':param['r0']['HH'],'r3':param['r0']['HS'],
-                      'k1':param['k']['SS'],'k2':param['k']['HH'],'k3':param['k']['HS']}
-    elif systype == "hard":
-        pair_coeff = {'r1':param['r0']['HH'],'r2':param['r0']['SS'],'r3':param['r0']['HS'],
-                      'k1':param['k']['HH'],'k2':param['k']['SS'],'k3':param['k']['HS']}
-    elif systype == "mixed":
-        b11 = get_bond_pair(1)
-        b12 = get_bond_pair(2)
-        b13 = get_bond_pair(3) 
-        pair_coeff = {'r1':param['r0'][b11],'r2':param['r0'][b12],'r3':param['r0'][b13],
-                      'k1':param['k'][b11],'k2':param['k'][b12],'k3':param['k'][b13]}
-
-
-    param1 = param.update(pair_coeff)
+    coeff = {}
+    coeff['bond_coeff'] = bond_coeff
+    coeff['pair_coeff'] = pair_coeff   
+    param1 = param.update(coeff)
+    
     lmpin  = [in_cg1 %param, in_cg2 %param]
     modes  = ['equil',  'sample']
 
@@ -64,9 +67,9 @@ atom_style    bond
 boundary      p p p 
 read_data     %(data)s 
 bond_style    harmonic
-bond_coeff    1 %(k1)f %(r1)f
+%(bond_coeff)s
 pair_style    table linear 1000 
-pair_coeff    * * pair.table.%(iteration)d SS
+%(pair_coeff)s
 special_bonds lj/coul 0.0 1.0 1.0 
 #dump          1 all custom 1 dump-equil.lammpstrj id mol xs ys zs
 thermo        200
@@ -92,20 +95,15 @@ run           10000
 write_restart restart.equil
 """
 
-# To add later
-#%(bond_coeffs)s
-#%(pair_coeffs)s
-
-
 # Input script used to generate samples.
 in_cg2 = """
 read_restart  restart.equil
 fix           1 all nvt temp %(T)f %(T)f 200
-pair_coeff    1 1 pair.table.%(iteration)d SS
+%(pair_coeff)s
 thermo        100
 compute       msd     all msd
 thermo_style  custom step temp press vol c_msd[4] pe ke
-dump          1 all custom 250 %(dump)s id mol xs ys zs vx vy vz
+dump          1 all custom 250 %(dump)s id type mol xs ys zs vx vy vz
 run           20000
 write_restart restart.samples
 """

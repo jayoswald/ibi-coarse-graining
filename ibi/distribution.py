@@ -12,8 +12,10 @@ from matplotlib import pyplot as py
 """
 
 # Computes the rdf/bdf/adf functions by calling cg-post.
-def compute_rdf(lmp_data, dump, out, r_range, b_range, a_range):
-    types = ['S']
+#  lmp_data is the path to the LAMMPS read_data input file.
+#  out is what we want cg-post to write to e.g. rdf_out_01.txt
+#  type are the bead types to compute (expecting a list)
+def compute_rdf(lmp_data, types, dump, out, r_range, b_range, a_range):
     cgini  = 'input    %s\n' % lmp_data
     cgini += 'dump     %s\n' % dump
     cgini += 'output   %s\n' % out
@@ -21,10 +23,11 @@ def compute_rdf(lmp_data, dump, out, r_range, b_range, a_range):
     cgini += 'bdf      %f %f %f\n' % tuple(b_range)
     cgini += 'adf      %f %f %f\n' % tuple(a_range)
 
-    #TODO: beadtype isn't always going to be S
-    for i in range(len(types)):
-        cgini += 'type %d %s\n' %(i+1, types[i])
-    cgini += 'bead S\ncenter 0'
+    for t in types: 
+        cgini += 'type %d %s\n' %(types[t], t)
+
+    for t in types:
+        cgini += '\nbead %s\ncenter 0' %t
     
     f = open('cg.ini', 'w')
     f.write(cgini)
@@ -32,11 +35,17 @@ def compute_rdf(lmp_data, dump, out, r_range, b_range, a_range):
     os.system(paths.cgpost)
 
 # Gets specific iteration rdf files.
-def iteration_rdf_files(it):  return glob('rdf-cg-%02d*.txt' % it)
+#TODO: for mixed to work we need to know types.
+#def iteration_rdf_files(it):  return glob('rdf-cg-%02d_01.txt' % it)
+def iteration_rdf_files(it):  return glob('rdf-cg-%02d_*.txt' % it)
 def md_rdf_files():           return glob('rdf/rdf*.txt')
 
 # Reads the rdf/bdf/adf files and computes the average.
 def average_rdf(rdf_files):
+    if len(rdf_files) == 0:
+        print 'No rdf files found'
+        import sys
+        sys.exit(1)
     rdf = [genfromtxt(f) for f in rdf_files]
     for i in range(1,len(rdf)):
         rdf[0][:,1] += rdf[i][:,1]
@@ -46,6 +55,7 @@ def average_rdf(rdf_files):
 # Compares an iteration to the md rdf.
 def compare(it, figpath=''):
     md_rdf = average_rdf(md_rdf_files())
+    print 'cg rdf file is ',iteration_rdf_files(it)
     cg_rdf = average_rdf(iteration_rdf_files(it))
 
     py.clf()

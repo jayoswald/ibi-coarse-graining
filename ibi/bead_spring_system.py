@@ -36,8 +36,8 @@ class BeadSpringSystem:
         f.write(' %15.9f %15.9f zlo zhi\n\n'% (0.0, self.box_length))
 
         f.write('Masses\n\n')
-        for m in self.bead_masses:
-            f.write('1 %f\n'%m)
+        for i,m in enumerate(self.bead_masses):
+            f.write('%d %f\n'%(i+1,m))
         f.write('\n')
 
         f.write('Atoms\n\n')
@@ -168,11 +168,9 @@ def create(block, nchain, nblk, bond_length, box_length):
 # TODO: need to support more than one type of bead.
 #   Each bead needs to have its own mass.
 #   Also need to define r0 for each bead combination (A-A, A-B, B-B).
-def make_system(path, nchain, block, nblk, bond_length, density):
+def make_system(path, nchain, block, nblk, bond_length, density,bead_mass):
     
-    #TODO: only works for H,S beads - probably should use a file to store this. 
-    bead_mass = {'H': 253.261245, 'S':72.10776}
-
+    print 'bead masses are ', bead_mass
     mass_per_block = 0.0
     for bead in block:
         mass_per_block += bead_mass[bead]
@@ -202,7 +200,7 @@ def make_system(path, nchain, block, nblk, bond_length, density):
 
     print zip(bead_types, system.bead_masses) 
     system.write_to_lammps(path)
-    return system.bond_types
+    return system.bond_types,system.atom_types
 # Standalone mode (called from command window).
 def main():
 
