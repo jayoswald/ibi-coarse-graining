@@ -85,13 +85,13 @@ thermo        100
 run           500
 
 # Minimizes energy.
-velocity      all scale 10
+velocity      all scale 100
 minimize      1e-6 1e-6 5000 5000
 
 # Equilibriate at temperature.
 unfix         1
 unfix         2
-fix           1 all nvt temp %(T)f %(T)f 100
+fix           1 all nvt temp %(T)f %(T)f 200
 timestep      50
 thermo        500
 run           10000
