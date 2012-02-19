@@ -43,7 +43,7 @@ type [i] [atom_type]
   (which) should correspond to the types in the car/mdf files.
 (REQUIRED for all atom types used in bead definitions)
 
-bead [t1 t2 t3 ...]
+bead <bead_type> [t1 t2 t3 ...]
   Defines a bead.  The index of beads will starts at zero and increments in
   the order that they are defined (for matching up with the output files).
   Following the bead command is a list of atom types that are connected 
@@ -51,18 +51,16 @@ bead [t1 t2 t3 ...]
   e.g. o2* will match o2e and o2s, while c*o would match c2o, c4o, etc.
 (REQUIRED for all bead definitions)
 
-center [c]
+center <bead_type> [c]
   Defines the index of the atom within a bead that acts as the center of the
   bead (for computing bead-bead distances.)  The bead is zero-indexed,
   (i.e. setting [c]=0 will mean that the first atom in the bead is the center.
-  This command sets the definition for the most recently defined bead type and 
-  must follow a bead command.
+  This command must happen after bead_type was defined by a bead command.
 (REQUIRED for all bead definitions)
 
-share [s1 s2 s3 ...]
+share <bead_type> [s1 s2 s3 ...]
   Allows a bead to share atoms with another bead.  If an atom is to be shared
-  by two bead types, then both beads should define a shared atom.  This command
-  also acts on the mostly recently defined bead type.
+  by two bead types, then both beads should define a shared atom.  
 (DEFAULT - no shared atoms)
 
 Anything in the cg.ini file following a # symbol is considered a comment.
@@ -93,14 +91,14 @@ type 10 c4o
 type 11 o2e
 
 #          0   1   2   3   4   5    6    7   8   9   10  11 12  13
-bead      o2s c3' c3a c3a c3a c3a n3mh c3" n3mh c3a c3a c3a c3a c4 
-center    7
+bead      H o2s c3' c3a c3a c3a c3a n3mh c3" n3mh c3a c3a c3a c3a c4 
+center    H 7
 # Share the first and last atoms.
-share     0 13
+share     H 0 13
 
 #          0   1   2   3   4
-bead      c4* c4  c4  c4o o2*
-center    2
+bead      S c4* c4  c4  c4o o2*
+center    S 2
 # Allow the last atom to be shared.
-share     4
+share     S 4
 

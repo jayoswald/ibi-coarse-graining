@@ -24,24 +24,13 @@ class InverseBoltzmannIterator:
         self.bond_r0      = {}
         self.bond_k       = {}
 
-        hard_r0  = 11.099044  # in angstrom 
-        hard_k   = 1.056467   # in kcal/mol / angstrom
-        hard_rho = 1.236320   # hard density
-
-        soft_r0  = 4.866691   # in angstrom
-        soft_k   = 7.193422
-        soft_rho = 0.831960   # soft density
-
-        hs_r0    = 9.2456160311
-        hs_k     = 5.34556100981
-        hs_rho   = 1.06983097153
-
+        # Reads the bond properities from the
         for p in opt.bonds:
             self.bond_r0[p] = opt.bonds[p]['r0']
             self.bond_k[p]  = opt.bonds[p]['k']
-        print 'bond length are', self.bond_r0
-        print 'bond stiffness are', self.bond_k
-        print 'available pair is ', opt.pairs
+        print 'Bond lengths are:    ', self.bond_r0
+        print 'Bond stiffnesss are: ', self.bond_k
+        print 'Available pairs are: ', opt.pairs
 
         # make system and return dict of bondtype for lammps input
         self.bond_types,self.atom_types = make_system(self.lmp_data, opt.nchain, opt.block,
@@ -72,7 +61,7 @@ class InverseBoltzmannIterator:
             a_range = (0.0,    180.0,  1.0)
 
             compute_rdf(self.lmp_data, self.atom_types, dump_file, tag, r_range, b_range, a_range)
-            compare(self.iteration_ct, 'rdf-%d.png'%i)
-            self.pair_table.correction(self.iteration_ct)
+            compare(self.iteration_ct, self.options.missing_pair, 'rdf-%d.png'%i)
+            self.pair_table.correction(self.iteration_ct, self.options.missing_pair)
             self.iteration_ct += 1
          

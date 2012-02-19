@@ -26,10 +26,11 @@ namespace cg {
         _bdf_param[2] = 0.1;
 
         read_input(in);
-        for (size_t i=0; i<_bead_defs.size(); ++i) {
+
+        for (auto &bead_iter: _bead_definitions) {
             unsigned old_size = _beads.size();
-            find_beads(i);
-            cout << "Bead " << _bead_defs[i].atoms
+            find_beads(bead_iter.first);
+            cout << "Bead " << bead_iter.second.atoms
 			 	<< "\t" << _beads.size() - old_size << " found.\n";
         }
         find_bead_neighbors();
@@ -39,9 +40,14 @@ namespace cg {
 
     // Returns the number of timesteps.
     int CgSystem::num_timesteps() const { return _lammps_data->_dump.size(); }
+
+    // Returns the element of an atom type.
+	string CgSystem::type_to_element(int type) const { 
+        return _type.find(type)->second; 
+    }
+
     // Reads the input file for the cg-analysis.
-    void CgSystem::read_input(string path)
-    {
+    void CgSystem::read_input(string path)  {
         string lmp_data, lmp_dump;
         std::fstream fid(path.c_str(), std::ios::in);
         if (!fid) {
@@ -75,26 +81,34 @@ namespace cg {
                 p[1] = str2dbl(cmd[2]);
                 p[2] = str2dbl(cmd[3]);
             }            
-            else if (cmd[0]=="bead"   && n>=2) {
-                _bead_defs.push_back(BeadDefinition());
-                for (auto e=cmd.cbegin()+1; e!=cmd.cend(); ++e)
-                    _bead_defs.back().atoms.push_back(*e);
+            else if (cmd[0]=="bead"   && n>2) {
+                auto &bead_id = cmd[1];
+                _bead_definitions[bead_id] = BeadDefinition();
+                for (auto e=cmd.cbegin()+2; e!=cmd.cend(); ++e) {
+                    _bead_definitions[bead_id].atoms.push_back(*e);
+                }
             }
-            else if (cmd[0]=="share" && n>=2) {
-                if (_bead_defs.empty()) { 
-                    cout << "Error: share must be called after a bead command.\n";
+            else if (cmd[0]=="share" && n>2) {
+                auto &bead_id  = cmd[1];
+                auto bead_iter = _bead_definitions.find(bead_id);
+
+                if (bead_iter == _bead_definitions.end()) {
+                    cout << "Error: bead " << bead_id << " not yet defined.\n";
                     exit(1);
                 }
-                for (auto i=cmd.cbegin()+1; i!=cmd.cend(); ++i)
-                   _bead_defs.back().share.push_back(str2u32(*i));
+                // Push back any atoms indices after the id to indicate sharing.
+                for (auto i=cmd.cbegin()+2; i!=cmd.cend(); ++i)
+                   bead_iter->second.share.push_back(str2u32(*i));
             }
             // Must be called after a bead command.
-            else if (cmd[0]=="center" && n==2) {
-                if (_bead_defs.empty()) { 
-                    cout << "Error: center must be called after a bead command.\n";
+            else if (cmd[0]=="center" && n==3) {
+                auto &bead_id  = cmd[1];
+                auto bead_iter = _bead_definitions.find(bead_id);
+                if (bead_iter == _bead_definitions.end()) {
+                    cout << "Error: bead " << bead_id << " not yet defined.\n";
                     exit(1);
                 }
-                _bead_defs.back().center = str2u32(cmd[1]);
+                bead_iter->second.center = str2u32(cmd[2]);
             }
             else cout << "Invalid command \"" << join(cmd) << "\".\n";
         }
@@ -104,10 +118,10 @@ namespace cg {
     }
 
     // Crawls though the connectivity and determines beads.
-    void CgSystem::find_beads(size_t beadtype)
+    void CgSystem::find_beads(const std::string &beadtype)
     {
         cout << "Finding beads of type " << beadtype << "\n";
-		auto &beadDef = _bead_defs[beadtype];
+		auto &beadDef = _bead_definitions[beadtype];
         auto &share   = beadDef.share;
         const AtomicSystem &sys = _lammps_data->_system;
         if (beadDef.atoms.empty()) {
@@ -195,7 +209,7 @@ namespace cg {
     }
 
     // Computes the bond-length distrubution function between beads.
-    Histogram CgSystem::compute_bdf(int b1, int b2, int step) const {
+    Histogram CgSystem::compute_bdf(string b1, string b2, int step) const {
         Histogram bdf(_bdf_param[0], _bdf_param[1], _bdf_param[2]);        
         
         if (b1 > b2) std::swap(b1, b2);
@@ -203,7 +217,7 @@ namespace cg {
         for (auto i=_beads.cbegin(); i!=_beads.cend(); ++i) {            
 
             // If bead i matches b1 or b2, then bead j must match the other.
-            int bj;
+            string bj;
             if      (i->type == b1) bj = b2;
             else if (i->type == b2) bj = b1;
             else continue;
@@ -220,7 +234,7 @@ namespace cg {
     }
 
     // Computes the bond-angle distrubution function between beads.
-    Histogram CgSystem::compute_adf(int b1, int b2, int b3, int step) const {
+    Histogram CgSystem::compute_adf(string b1, string b2, string b3, int step) const {
         static double rad2deg = 180.0/acos(-1.0);
         Histogram adf(_adf_param[0], _adf_param[1], _adf_param[2]);            
         // Loop over all pairs of beads (w/ no cutoff).
@@ -238,13 +252,12 @@ namespace cg {
     }
 
     // Computes the radial distribution function between beads.
-    Histogram CgSystem::compute_rdf(int b1, int b2, int step) const {
+    Histogram CgSystem::compute_rdf(string b1, string b2, int step) const {
         Histogram rdf(_rdf_param[0], _rdf_param[1], _rdf_param[2]);
         // Loop over all pairs of beads (w/ no cutoff).
         for (auto i=_beads.cbegin(); i!=_beads.cend(); ++i) {
-            
             // If bead i matches b1 or b2, then bead j must match the other.
-            int bj;
+            string bj;
             if      (i->type == b1) bj = b2;
             else if (i->type == b2) bj = b1;
             else continue;
@@ -286,19 +299,27 @@ namespace cg {
     }
 
     // Returns the number of beads of a given type.
-    int CgSystem::bead_count(int type) const {
+    int CgSystem::bead_count(string bead_type) const {
         int count = 0;
         for (auto b=_beads.begin(); b!=_beads.end(); ++b) {
-            count += int(b->type == type);
+            count += int(b->type == bead_type);
         }        
         return count;
     }
 
     // Returns the number of beads divided by the system volume.
-    double CgSystem::number_density(int type, int step) const {
-        double count = double(bead_count(type));                
+    double CgSystem::number_density(string bead_type, int step) const {
+        double count = double(bead_count(bead_type));
         double vol   = _lammps_data->volume(step);
         return count/vol;        
+    }
+
+
+    //! Returns a vector of all bead types defined.
+    std::vector<string> CgSystem::defined_bead_types() const {
+        std::vector<string> types;
+        for (auto &it: _bead_definitions) types.push_back(it.first);
+        return types;
     }
 
     // Checks if type1 matches type2 (allows wildcards on type2).

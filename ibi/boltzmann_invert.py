@@ -138,9 +138,9 @@ class PairTable:
         py.ylabel('Energy (kcal/mol)')
 
     # Computes the corrections to the pair table.
-    def correction(self, it):
+    def correction(self, it, pair):
         # Compute force table based on current iteration.
-        rdf = distribution.iteration_rdf_files(it)
+        rdf = distribution.iteration_rdf_files(it, pair)
         # Appends new force, energy, distance, table.
         self.compute(distribution.average_rdf(rdf))
         # Computes the correction to the force.

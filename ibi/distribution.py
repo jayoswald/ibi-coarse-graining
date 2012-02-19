@@ -27,7 +27,8 @@ def compute_rdf(lmp_data, types, dump, out, r_range, b_range, a_range):
         cgini += 'type %d %s\n' %(types[t], t)
 
     for t in types:
-        cgini += '\nbead %s\ncenter 0' %t
+        cgini += '\nbead %s %s' %(t,t)
+        cgini += '\ncenter %s 0' %t
     
     f = open('cg.ini', 'w')
     f.write(cgini)
@@ -35,10 +36,15 @@ def compute_rdf(lmp_data, types, dump, out, r_range, b_range, a_range):
     os.system(paths.cgpost)
 
 # Gets specific iteration rdf files.
-#TODO: for mixed to work we need to know types.
-#def iteration_rdf_files(it):  return glob('rdf-cg-%02d_01.txt' % it)
-def iteration_rdf_files(it):  return glob('rdf-cg-%02d_*.txt' % it)
-def md_rdf_files():           return glob('rdf/rdf*.txt')
+def iteration_rdf_files(it, pair):
+    pair_swap = pair[1] + pair[0]
+    rdf_files  = glob('rdf-cg-%02d_%s.txt' % (it, pair))
+    rdf_files += glob('rdf-cg-%02d_%s.txt' % (it, pair_swap))
+    return rdf_files
+
+# Returns all rdf files in the rdf folder..
+def md_rdf_files():
+    return glob('rdf/rdf*.txt')
 
 # Reads the rdf/bdf/adf files and computes the average.
 def average_rdf(rdf_files):
@@ -53,10 +59,9 @@ def average_rdf(rdf_files):
     return rdf[0]
 
 # Compares an iteration to the md rdf.
-def compare(it, figpath=''):
+def compare(it, pair, figpath=''):
     md_rdf = average_rdf(md_rdf_files())
-    print 'cg rdf file is ',iteration_rdf_files(it)
-    cg_rdf = average_rdf(iteration_rdf_files(it))
+    cg_rdf = average_rdf(iteration_rdf_files(it, pair))
 
     py.clf()
     py.plot(md_rdf[:,0], md_rdf[:,1])
@@ -67,4 +72,5 @@ def compare(it, figpath=''):
 
     if figpath == '': py.show()
     else:             py.savefig(figpath)
+
 

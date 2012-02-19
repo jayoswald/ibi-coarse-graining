@@ -15,18 +15,20 @@ int main(int n, char **argv)
         if (*a=="--test")               string_test();
     }    
     cg::CgSystem model(input);
+
+    auto bead_types = model.defined_bead_types();
     
-    cout << "Computing histograms for "<<model.num_timesteps()<<" steps.\n";
-    for (int b1=0; b1<model.num_bead_types(); ++b1) {
-        for (int b2=b1; b2<model.num_bead_types(); ++b2) {
+    cout << "Computing histograms for " << model.num_timesteps() << " steps.\n";
+    for (auto b1=bead_types.cbegin(); b1!=bead_types.cend(); ++b1) {
+        for (auto b2=b1; b2!=bead_types.cend(); ++b2) {
             cg::Histogram rdf, bdf, adf;
-            cout << "Computing " << b1 << ":" << b2 << " correlations.\n";
+            cout << "Computing " << *b1 << ":" << *b2 << " correlations.\n";
             #pragma omp parallel for
             for (int ts=0; ts<model.num_timesteps(); ++ts) {                    
-                auto new_rdf = model.compute_rdf(b1, b2, ts);
-                auto new_bdf = model.compute_bdf(b1, b2, ts);
-                //adf += model.compute_adf(b1, b2, b3, ts);
+                auto new_rdf = model.compute_rdf(*b1, *b2, ts);
+                auto new_bdf = model.compute_bdf(*b1, *b2, ts);
 
+                //adf += model.compute_adf(*b1, *b2, *b3, ts);
                 #pragma omp critical 
                 rdf += new_rdf;
                 #pragma omp critical 
@@ -42,10 +44,9 @@ int main(int n, char **argv)
             //adf.normalize();
 
             string tag   = model.output_tag();
-            string beads = to_string(b1) + to_string(b2);
-            rdf.write("rdf-"+tag+"_"+beads+".txt");
-            bdf.write("bdf-"+tag+"_"+beads+".txt");
-            //adf.write("adf-"+tag+".txt");
+            rdf.write("rdf-"+tag+"_"+*b1+*b2+".txt");
+            bdf.write("bdf-"+tag+"_"+*b1+*b2+".txt");
+            //adf.write("adf-"+tag+*b1+*b2+*b3+".txt");
         }        
     }
 }
