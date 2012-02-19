@@ -94,7 +94,7 @@ unfix         2
 fix           1 all nvt temp %(T)f %(T)f 200
 timestep      50
 thermo        500
-run           10000
+run           20000
 write_restart restart.equil
 """
 
@@ -107,7 +107,7 @@ compute       msd     all msd
 thermo_style  custom step temp press vol c_msd[4] pe ke
 dump          1 all custom 250 %(dump)s id type mol xs ys zs vx vy vz
 thermo        1000
-run           20000
+run           40000
 write_restart restart.samples
 """
 
