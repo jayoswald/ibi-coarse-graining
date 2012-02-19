@@ -202,6 +202,7 @@ namespace cg {
 
     // Returns the coordinate of an atom.
     double LAMMPS_Data::pair_distance(int step, int i, int j) const {
+
         const Coord &ri = _dump[step].scaled_coordinates[i];
         const Coord &rj = _dump[step].scaled_coordinates[j];
 
@@ -253,5 +254,15 @@ namespace cg {
     double LAMMPS_Data::volume(int step) const {
         auto s = _dump[step];
         return s.dx*s.dy*s.dz;
+    }
+
+
+    //! Returns the position of an atom.
+    Coord LAMMPS_Data::atom_position(int step, int i) const {
+        auto r = _dump[step].scaled_coordinates[i];
+        r.x *= _dump[step].dx;
+        r.y *= _dump[step].dy;
+        r.z *= _dump[step].dz;
+        return r;
     }
 }

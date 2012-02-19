@@ -4,6 +4,7 @@
 #include <numeric>
 #include <cmath>
 #include "string_tools.h"
+#include "bintable.h"
 
 using std::count;
 
@@ -253,21 +254,28 @@ namespace cg {
 
     // Computes the radial distribution function between beads.
     Histogram CgSystem::compute_rdf(string b1, string b2, int step) const {
+
+        BinTable bintable(_rdf_param[1], step, this);
         Histogram rdf(_rdf_param[0], _rdf_param[1], _rdf_param[2]);
+
         // Loop over all pairs of beads (w/ no cutoff).
-        for (auto i=_beads.cbegin(); i!=_beads.cend(); ++i) {
+        for (int i=0; i<num_beads(); ++i) {
             // If bead i matches b1 or b2, then bead j must match the other.
             string bj;
-            if      (i->type == b1) bj = b2;
-            else if (i->type == b2) bj = b1;
+            if      (_beads[i].type == b1) bj = b2;
+            else if (_beads[i].type == b2) bj = b1;
             else continue;
 
-            for (auto j=i+1; j!=_beads.cend(); ++j) {
-                if (j->type != bj || neighbors(i,j)) continue;
-                _lammps_data->pair_distances(step, i->center, j->center, rdf);
+            auto neighbors_of_i = bintable.neighbors(i);
+            for (auto bptr: neighbors_of_i) {
+                for (auto j: *bptr) {
+                    if (i >= j) continue;
+                    if (_beads[j].type != bj || neighbors(i,j)) continue;
+                    _lammps_data->pair_distances(step, _beads[i].center, _beads[j].center, rdf);
+                }
             }
         }
-        
+
         if (b1 == b2) {
             double n   = (double)bead_count(b1);
             double rho = number_density(b1, step);
@@ -288,6 +296,11 @@ namespace cg {
     // Determines if beads, i, j are 1st neighbors.
     bool CgSystem::neighbors(BeadCIter i, BeadCIter j) const {
         return std::count(i->neighbors.cbegin(), i->neighbors.cend(), j)>0;
+    }
+
+    bool CgSystem::neighbors(int i, int j) const {
+        return std::count(_beads[i].neighbors.cbegin(), 
+                          _beads[i].neighbors.cend(), _beads.cbegin() + j);
     }
 
     // Determines if beads, i, j share a common neighbor.
@@ -314,6 +327,13 @@ namespace cg {
         return count/vol;        
     }
 
+    // Returns the x y and z coordinates of a bead.
+    Coord CgSystem::bead_position(int step, int i) const {
+        // For now we just use center atom.
+        int c = _beads[i].center;
+        return _lammps_data->atom_position(step, c);
+        
+    }
 
     //! Returns a vector of all bead types defined.
     std::vector<string> CgSystem::defined_bead_types() const {
@@ -343,4 +363,15 @@ namespace cg {
         }
         return true;
     }
+
+    double CgSystem::box_dx(int step) const {
+        return _lammps_data->box_dx(step);
+    }
+    double CgSystem::box_dy(int step) const {
+        return _lammps_data->box_dy(step);
+    }
+    double CgSystem::box_dz(int step) const {
+        return _lammps_data->box_dz(step);
+    }
 }
+

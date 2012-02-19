@@ -1,16 +1,10 @@
 #pragma once
 #include <string>
 #include <vector>
+#include "coord.h"
 
 namespace cg {
 using std::string;
-
-//! Position of an atom.
-struct Coord {
-    Coord() {}
-    Coord(double x1, double x2, double x3) : x(x1), y(x2), z(x3) {}
-    double x,y,z;
-};
 
 //! Output from LAMMPS dump style atom.
 struct SnapshotDump {
@@ -65,6 +59,12 @@ public:
     double min_box_size(int step) const;
     //! Print atom position.
     void print_atom(int step, int i) const;
+    //! Returns the position of an atom.
+    Coord atom_position(int step, int i) const;
+
+    double box_dx(int step) const { return _dump[step].dx; }
+    double box_dy(int step) const { return _dump[step].dy; }
+    double box_dz(int step) const { return _dump[step].dz; }
 
     //! Returns the volume at a time step.
     double volume(int step) const;

@@ -3,6 +3,7 @@
 #include <string>
 #include <map>
 #include "histogram.h"
+#include "coord.h"
 
 namespace cg {
 using std::string;
@@ -59,6 +60,7 @@ public:
     Histogram compute_rdf(string b1, string b2, int step) const;
     //! Determines if beads, i, j are 1st neighbors.
     bool neighbors(BeadCIter i, BeadCIter j) const;
+    bool neighbors(int i, int j) const;
     //! Determines if beads, i, j are 2nd neighbors.
     bool second_neighbors(BeadCIter i, BeadCIter j) const;
     //! Returns the output tag.
@@ -71,6 +73,13 @@ public:
     int num_bead_types() const { return _bead_definitions.size(); }
     //! Returns a vector of all bead types defined.
     std::vector<string> defined_bead_types() const;
+    //! Returns the x y and z coordinates of a bead.
+    Coord bead_position(int step, int i) const;
+    int num_beads() const { return _beads.size(); }
+
+    double box_dx(int step) const;
+    double box_dy(int step) const;
+    double box_dz(int step) const;
     
 private:
     //! Definition of each bead type.

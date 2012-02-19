@@ -9,7 +9,8 @@ OBJ=$(SRC:.cpp=.o)
 CFLAGS=-c -std=c++0x -fopenmp
 LFLAGS=-static -fopenmp
 
-all: CFLAGS+=-O2
+all: CFLAGS+=-O3
+all: LFLAGS+=-O
 all: $(SRC) $(EXE)
 
 debug: CFLAGS+=-g -ggdb
