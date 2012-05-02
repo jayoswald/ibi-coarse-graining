@@ -198,7 +198,7 @@ def make_system(path, nchain, block, nblk, bond_length, density,bead_mass):
             bead_types.append(bead)
             system.bead_masses.append(bead_mass[bead])
 
-    print zip(bead_types, system.bead_masses) 
+    print 'bead masses are:', zip(bead_types, system.bead_masses) 
     system.write_to_lammps(path)
     return system.bond_types,system.atom_types
 # Standalone mode (called from command window).
@@ -214,12 +214,28 @@ def main():
                       help='sets beads in block')
     parser.add_option('', '--filename',  dest='path', default='bead_system.lammps',
                       help='specifies output file')
-    parser.add_option('','--bond_length', type='float', dest='r0', default= 5,
+    parser.add_option('','--bond_length', dest='r0', default= 5,
                       help='sets the bond length')
     parser.add_option('','--density', type='float', dest='rho', default=1.0,
                       help='sets the system density')
+    parser.add_option('','--bead_masses', dest='masses', default= 72.10,
+                      help='sets the bead masses')
+
     opt,args = parser.parse_args()
-    make_system(opt.path, opt.nchains, opt.blockstr, opt.nblocks, opt.r0, opt.rho)
+
+    bonds = opt.r0.strip().split(',')
+    masses= opt.masses.strip().split(',')
+
+    def list2dict(listtype):
+        dicttype = {}
+        for l in listtype:
+            x = l.split('=')
+            dicttype[x[0]]=float(x[1])
+        return dicttype
+    beadmasses = list2dict(masses)
+    bondlength = list2dict(bonds)
+
+    make_system(opt.path, opt.nchains, opt.blockstr, opt.nblocks, bondlength, opt.rho,beadmasses)
 
 # If called at top level.
 if __name__ == '__main__':
