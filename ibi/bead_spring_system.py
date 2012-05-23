@@ -129,18 +129,6 @@ def create(block, nchain, nblk, bond_length, box_length):
             ran_vect  = bond_length[bpair] * random_unit()
             next_bead = system.beads[-1][2] + ran_vect
 
-            #to check next bead is inside box
-            while True:
-                boxcheck=[]
-                for ri in next_bead:
-                    if ri < (system.box_length) and (ri >0.0):
-                        boxcheck.append('T')
-                    else: boxcheck.append('F')
-                if boxcheck == ['T','T','T']: break
-                else:
-                    ran_vect  = bond_length[bpair] * random_unit()
-                    next_bead = system.beads[-1][2] + ran_vect    
-
             # Check if angle ijk is not near zero degrees.
             if z > 1:
                 while True:
@@ -156,17 +144,6 @@ def create(block, nchain, nblk, bond_length, box_length):
                     if cos_angle_ijk < 0.8: break
                     ran_vect  = bond_length[bpairjk] * random_unit()
                     next_bead = system.beads[-1][2] + ran_vect
-                    while True:
-                        boxcheck = []
-                        for ri in next_bead:
-                            if ri < (system.box_length) and (ri >0.0):
-                                boxcheck.append('T')
-                            else: boxcheck.append('F')
-                        if boxcheck == ['T','T','T']: break
-                        else:
-                            ran_vect  = bond_length[bpairjk] * random_unit()
-                            next_bead = system.beads[-1][2] + ran_vect
-
 
             system.bonds.append([btype, len(system.beads), len(system.beads)+1])
 
