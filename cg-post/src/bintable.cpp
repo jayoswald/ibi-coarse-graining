@@ -3,6 +3,7 @@
 #include "cgsystem.h"
 #include <cmath>
 #include <set>
+#include <iostream>
 
 namespace cg {
 
@@ -15,9 +16,12 @@ namespace cg {
 
         // Number of bins along each direction.
         // Granulity to make bins smaller.
-        _xbins = int(_granularity*cg->box_dx(step)/cutoff);
-        _ybins = int(_granularity*cg->box_dy(step)/cutoff);
-        _zbins = int(_granularity*cg->box_dz(step)/cutoff);
+        _xbins = int(cg->box_dx(step)/cutoff);
+        _ybins = int(cg->box_dy(step)/cutoff);
+        _zbins = int(cg->box_dz(step)/cutoff);
+        _xbins = std::max(_xbins, 1) * _granularity;
+        _ybins = std::max(_ybins, 1) * _granularity;
+        _zbins = std::max(_zbins, 1) * _granularity;
         
         _bins.assign(_xbins*_ybins*_zbins, std::vector<int>());
 
