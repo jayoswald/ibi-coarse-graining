@@ -56,7 +56,8 @@ class PairTable:
 
         # Get distance (r) and energy (e).
         r =  rdf[:,0]
-        e = -kB*self.temperature*log(rdf[:,1])
+        deltav = -0.15*kB*self.temperature*(1-r/cut_end)
+        e = -kB*self.temperature*log(rdf[:,1])+deltav
 
 
         dr_final = (cut_end-self.min_distance)/self.npts
@@ -143,6 +144,7 @@ class PairTable:
         rdf = distribution.iteration_rdf_files(it, pair)
         # Appends new force, energy, distance, table.
         self.compute(distribution.average_rdf(rdf))
+
         # Computes the correction to the force.
         df = self.force[-1] - self.force[0]
         self.force[-1] = self.force[-2] - df
