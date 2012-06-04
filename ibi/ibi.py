@@ -17,7 +17,7 @@ class InverseBoltzmannIterator:
     def __init__(self, opt):
         self.iteration_ct = 0
         self.options      = opt
-        self.pair_table   = PairTable(opt.mdtemp, 'rdf', False)
+        self.pair_table   = PairTable(opt.mdtemp, 'rdf')
         self.lmp_data     = 'coarse_system.lammps'
         self.bond_types   = {}
         self.atom_types   = {}
@@ -54,6 +54,7 @@ class InverseBoltzmannIterator:
             # First initialize the coarse system with the new pair potential.
             lammps.init_coarse(param)
 
+            self.pair_table.last_p_error = 0.0
             for it in range(10):
                 log = lammps.pressure_run(param)
                 # Now adjust potential to fix pressure
@@ -63,7 +64,7 @@ class InverseBoltzmannIterator:
                 if abs(pbar - self.pressure_goal) < self.pressure_tolerance:
                     break
 
-                self.pair_table.pressure_correction(pbar)
+                self.pair_table.pressure_correction(pbar - self.pressure_goal)
                 self.pair_table.write_lammps('pair.table.%d' % self.iteration_ct,
                                              self.options.missing_pair, self.iteration_ct)
 

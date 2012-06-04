@@ -146,7 +146,7 @@ minimize      1e-6 1e-6 5000 5000
 unfix         1
 unfix         2
 fix           1 all nvt temp %(T)f %(T)f 200
-timestep      50
+timestep      40
 thermo        500
 run           20000
 write_restart restart.equil

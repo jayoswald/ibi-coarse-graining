@@ -10,14 +10,18 @@ kB = 0.0019872041
 # Derivative of a 9/6 Lennard Jones potential.
 # as in http://lammps.sandia.gov/doc/pair_lj96.html
 # v[0]: Sigma, v[1]: Epsilon
-lj96_force = lambda v,r: v[1]*(36.0*v[0]**9/r**10 - 24.0*v[0]**6/r**7)
+def lj96_force(v,r):
+    f = v[1]*(36.0*v[0]**9/r**10 - 24.0*v[0]**6/r**7)
+    for i in range(2,len(v),3):
+        f += v[i+2]*exp(-v[i+1]*v[i+1]*(r-v[i])**2)
+    return f
 
 """
   Computes potential energy and force vs. distance from the radial density function.
 """
 class PairTable:
     # Initializes the pair table from all-atom data.
-    def __init__(self, md_temp, md_rdf, plot=False):
+    def __init__(self, md_temp, md_rdf):
 
         # Sets the temperature of the all-atom simulation.
         self.temperature  = md_temp 
@@ -26,6 +30,10 @@ class PairTable:
         # If LAMMPS simulations crash with pair cutoff error, this needs to be smaller.
         self.min_distance = 0.00001
         self.npts = 1000
+
+        # Pair force correct per unit pressure.
+        self.pfactor = 1.0/5000.0
+        self.last_p_error = 0.0
 
         # Computes the average distribution functions for the all-atom case.
         self.all_atom_rdf = distribution.average_rdf(distribution.md_rdf_files())
@@ -37,13 +45,7 @@ class PairTable:
 
         # Computes the initial potential with the all-atom data.
         self.compute(self.all_atom_rdf)
-        
-        # Plot the potential.
-        if plot: 
-            self.plot_force()
-            self.plot_energy()
-            py.show()
-
+       
     # Computes the pair table and appends it to the current step.
     def compute(self, rdf):
         cut_beg    = 13.0
@@ -68,19 +70,7 @@ class PairTable:
         interp = Interpolator(r,e)
         ff = [-interp.derivative(ri) for ri in rr]
 
-        # Subtract 96 part away and smooth.
-        v0 = [5.0, 0.01] 
-        lj96_err = lambda v: ff - lj96_force(v,rr)
-        v = optimize.leastsq(lj96_err, v0)[0]
-
-        ff -= lj96_force(v, rr)
-        w,K = 1,2
-        for k in range(K):
-            for i in range(w,len(ff)-w):
-                ff[i] = mean(ff[i-w:i+w])
-
-        ff += lj96_force(v, rr)
-
+        ff, v = smooth_force(rr, array(ff), len(self.force))
 
         # Add more values to short distance to make sure that 
         # LAMMPS run won't fail when pair distance < table min.
@@ -156,17 +146,28 @@ class PairTable:
         # Need to reintegrate energy
         rr = self.distance[-1]
         ff = self.force[-1]
+        ff = smooth_force(rr, ff, len(self.force))[0]
         self.energy[-1] = -simpson_integrate(rr[::-1], ff[::-1])[::-1]
         self.energy[-1] -= self.energy[-1][-1]
 
     # Makes a pressure correction to the pair potential.
-    def pressure_correction(self, pressure):
+    def pressure_correction(self, p_error):
         r  = self.distance[-1]
         cut_end = r[-1]
 
-        A = -pressure / 5000.0
+        incr = 1.0
+        # Dynamically adjust ratio so that each iteration reduces error by 95%.
+        if self.last_p_error != 0.0:
+            ratio = (self.last_p_error - p_error)/self.last_p_error
+            if ratio > 0.0:
+                incr /= ratio + 0.05
+                self.pfactor *= incr
+
+        self.last_p_error = p_error
+        A = -p_error * self.pfactor
 
         print 'Applying force correction of:', A
+        print 'Correction factor is        :', self.pfactor, '(%.2fx)'%incr
 
         dV = A*kB*self.temperature*(1.0-r/cut_end)
         dF = A*kB*self.temperature*(1.0/cut_end)
@@ -182,4 +183,44 @@ def simpson_integrate(x,f):
         # Integral is from i-2 to here + F[i-2]
         F[i] = F[i-2] + (f[i-2]+4.0*f[i-1]+f[i])*(x[i]-x[i-2])/6.0
     return F
+
+# Smooths out the computed force.
+def smooth_force(r, f, it):
+    mask = f < -min(f)*8.0
+    rm,fm = r[mask],f[mask]
+
+    error = lambda p: fm - lj96_force(p, rm)
+    p0 = [5.0,0.01]
+    for d in [5.0,6.0,8.0,10]:
+        p0 += [d, 2.0, 0.0]
+
+    fit = optimize.leastsq(error, p0, maxfev=4000, full_output=1)
+    while fit[2]['nfev'] == 4000:
+        p0 = p0[0:-3]
+        fit = optimize.leastsq(error, p0, maxfev=4000, full_output=1)
+    p = fit[0]
+    
+    print 'Gaussian peaks    at  :', p[2::3]
+    print 'Gaussian widths  are:', array(p[3::3])**-2
+    print 'Gaussian heights are:', array(p[4::3])
+
+    py.clf()
+    py.plot(rm, fm, '.')
+    py.plot(rm, lj96_force(p,rm))
+
+    fm -= lj96_force(p,rm)
+    w,K = 4,5
+    for k in range(K):
+        for i in range(w,len(fm)-w):
+            fm[i] = mean(fm[i-w:i+w+1])
+
+    f[mask]    = fm + lj96_force(p,rm)
+    f[mask==0] = lj96_force(p, r[mask==0]) + fm[0] 
+
+    py.plot(rm,f[mask])
+    py.legend(['original', 'fitted', 'smoothed'], loc='upper right')
+    py.savefig('smooth-%d.png' %it)
+
+    return f,p
+
 
