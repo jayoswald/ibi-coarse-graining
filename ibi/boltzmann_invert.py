@@ -56,8 +56,7 @@ class PairTable:
 
         # Get distance (r) and energy (e).
         r =  rdf[:,0]
-        deltav = -0.15*kB*self.temperature*(1-r/cut_end)
-        e = -kB*self.temperature*log(rdf[:,1])+deltav
+        e = -kB*self.temperature*log(rdf[:,1])
 
 
         dr_final = (cut_end-self.min_distance)/self.npts
@@ -154,6 +153,21 @@ class PairTable:
         ff = self.force[-1]
         self.energy[-1] = -simpson_integrate(rr[::-1], ff[::-1])[::-1]
         self.energy[-1] -= self.energy[-1][-1]
+
+    # Makes a pressure correction to the pair potential.
+    def pressure_correction(self, pressure):
+        r  = self.distance[-1]
+        cut_end = r[-1]
+
+        A = -pressure / 5000.0
+
+        print 'Pressure was:                ', pressure
+        print 'Applying force correction of:', A
+
+        dV = A*kB*self.temperature*(1.0-r/cut_end)
+        dF = A*kB*self.temperature*(1.0/cut_end)
+        self.energy[-1] += dV
+        self.force[-1]  += dF 
     
 # Cumulative integration of f using Simpson's rule.
 def simpson_integrate(x,f):

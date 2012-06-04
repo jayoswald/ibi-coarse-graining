@@ -23,6 +23,8 @@ class InverseBoltzmannIterator:
         self.atom_types   = {}
         self.bond_r0      = {}
         self.bond_k       = {}
+        self.pressure_tolerance = 4.0
+        self.pressure_goal      = 1.0
 
         # Reads the bond properities from the
         for p in opt.bonds:
@@ -49,10 +51,23 @@ class InverseBoltzmannIterator:
             self.pair_table.write_lammps('pair.table.%d' % self.iteration_ct,
                                          self.options.missing_pair, self.iteration_ct)
 
-            # Don't rerun lammps if the output file already exisits.
-            # This means you have to delete output files if you want lammps to rerun.
-            if self.options.clean_run or not os.path.exists(dump_file): 
-                lammps.run_coarse(param)
+            # First initialize the coarse system with the new pair potential.
+            lammps.init_coarse(param)
+
+            for it in range(10):
+                log = lammps.pressure_run(param)
+                # Now adjust potential to fix pressure
+                pbar = lammps.read_pressure_from_log(log)
+
+                if abs(pbar - self.pressure_goal) < self.pressure_tolerance:
+                    break
+
+                self.pair_table.pressure_correction(pbar)
+                self.pair_table.write_lammps('pair.table.%d' % self.iteration_ct,
+                                             self.options.missing_pair, self.iteration_ct)
+
+            # Now generate samples for the ibi coarse-graining.
+            lammps.sample_run(param)
 
             # Now we need to analyze the coarse-grain rdf function.
             r = self.pair_table.distance[-1]
