@@ -114,17 +114,22 @@ class PairTable:
             fid.write('%d %f %f %f\n' %(i, r[i], e[i], f[i]))
         
     # Plots the forces at an iteration.
-    def plot_force(self, it=-1):
+    def plot_force(self, name, it=-1):
         r = self.distance[it]
         f = self.force[it]
 
-        py.figure()
+        # Only use first iteration to compute force
+        # so all plots share the same range.
+        fmin = 3.0*min(self.force[0])
+        fmax = -4.0*fmin
+
+        py.clf()
         py.hold(1)
-        py.plot(r, f, 'b', linewidth=2)
-        py.axis((min(r), max(r), min(f)-0.2, min(f) + 1.0))
-        py.hold(0)
+        py.plot(r, f, 'b')
+        py.axis((min(r), max(r), fmin, fmax))
         py.xlabel('Pair distance (A)')
         py.ylabel('Force (kcal/mol/Angstrom)')
+        py.savefig(name)
 
     # Plots the forces at an iteration.
     def plot_energy(self, it=-1):
@@ -161,7 +166,6 @@ class PairTable:
 
         A = -pressure / 5000.0
 
-        print 'Pressure was:                ', pressure
         print 'Applying force correction of:', A
 
         dV = A*kB*self.temperature*(1.0-r/cut_end)

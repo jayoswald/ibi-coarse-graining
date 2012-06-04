@@ -58,6 +58,7 @@ class InverseBoltzmannIterator:
                 log = lammps.pressure_run(param)
                 # Now adjust potential to fix pressure
                 pbar = lammps.read_pressure_from_log(log)
+                print 'Pressure was:                ', pbar
 
                 if abs(pbar - self.pressure_goal) < self.pressure_tolerance:
                     break
@@ -76,7 +77,11 @@ class InverseBoltzmannIterator:
             a_range = (0.0,    180.0,  1.0)
 
             compute_rdf(self.lmp_data, self.atom_types, dump_file, tag, r_range, b_range, a_range)
+
+            # Generate plots of rdf and force.
             compare(self.iteration_ct, self.options.missing_pair, 'rdf-%d.png'%i)
+            self.pair_table.plot_force('force-%d.png' %i)
+
             self.pair_table.correction(self.iteration_ct, self.options.missing_pair)
             self.iteration_ct += 1
          
