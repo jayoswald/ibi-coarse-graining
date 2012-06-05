@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os, paths
 import numpy
+import sys
 
 # Global params
 use_pbs = False

@@ -191,11 +191,11 @@ def smooth_force(r, f, it):
 
     error = lambda p: fm - lj96_force(p, rm)
     p0 = [5.0,0.01]
-    for d in [5.0,6.0,8.0,10]:
-        p0 += [d, 2.0, 0.0]
+#    for d in [5.0,6.0,8.0,10]:
+#        p0 += [d, 2.0, 0.0]
 
     fit = optimize.leastsq(error, p0, maxfev=4000, full_output=1)
-    while fit[2]['nfev'] == 4000:
+    while len(p0) > 2 and fit[2]['nfev'] == 4000:
         p0 = p0[0:-3]
         fit = optimize.leastsq(error, p0, maxfev=4000, full_output=1)
     p = fit[0]
@@ -209,7 +209,7 @@ def smooth_force(r, f, it):
     py.plot(rm, lj96_force(p,rm))
 
     fm -= lj96_force(p,rm)
-    w,K = 4,5
+    w,K = 1,2
     for k in range(K):
         for i in range(w,len(fm)-w):
             fm[i] = mean(fm[i-w:i+w+1])
