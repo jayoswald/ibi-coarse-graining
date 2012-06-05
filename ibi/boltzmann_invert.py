@@ -44,10 +44,13 @@ class PairTable:
         self.energy    = []
 
         # Computes the initial potential with the all-atom data.
-        self.compute(self.all_atom_rdf)
+        self.allatomcompute(self.all_atom_rdf)
        
     # Computes the pair table and appends it to the current step.
-    def compute(self, rdf):
+
+
+    def allatomcompute(self,rdf):
+
         cut_beg    = 13.0
         cut_end    = 15.0
 
@@ -78,7 +81,7 @@ class PairTable:
         fpad = lj96_force(v, rpad) + ff[0] - lj96_force(v, rr[0])
         rr   = concatenate((rpad, rr))
         ff   = concatenate((fpad, ff))
-    
+
         # Now we cut off forces smoothly at any point past max_attraction.
         ff[rr>cut_beg] *= 0.5*(1.0+cos(pi*(rr[rr>cut_beg]-cut_beg)/(cut_end-cut_beg)))
         ff[rr>cut_end] = 0.0
@@ -91,6 +94,56 @@ class PairTable:
         self.distance.append(rr)
         self.force.append(ff)
         self.energy.append(ee)
+
+    def compute(self, rdf):
+
+        cut_beg    = 13.0
+        cut_end    = 15.0
+
+        # Removes values with a density of zero, they will get added back later.
+        rdf = rdf[nonzero(rdf[:,1])[0], :]
+        # Finds the first index where the density is greater than 0.25*rho.
+        i0 = nonzero(rdf[:,1] > 0.25)[0][0]
+
+        # Get distance (r) and energy (e).
+        r =  rdf[:,0]
+        e = -kB*self.temperature*log(rdf[:,1])
+
+
+        dr_final = (cut_end-self.min_distance)/self.npts
+        # Figure out what range we need
+
+        # Compute derivative from splines.
+        rr     = arange(cut_end, r[i0], -dr_final)[::-1]
+
+        interp = Interpolator(r,e)
+        ff = [-interp.derivative(ri) for ri in rr]
+    
+        v0 = [5.0, 0.01]
+        lj96_err = lambda v: ff - lj96_force(v,rr)
+        v = optimize.leastsq(lj96_err, v0)[0]
+
+
+        # Add more values to short distance to make sure that 
+        # LAMMPS run won't fail when pair distance < table min.
+        rpad = arange(self.min_distance, rr[0]-0.5*dr_final, dr_final)
+        fpad = lj96_force(v, rpad) + ff[0] - lj96_force(v, rr[0])
+        rr   = concatenate((rpad, rr))
+        ff   = concatenate((fpad, ff))
+
+        # Now we cut off forces smoothly at any point past max_attraction.
+        ff[rr>cut_beg] *= 0.5*(1.0+cos(pi*(rr[rr>cut_beg]-cut_beg)/(cut_end-cut_beg)))
+        ff[rr>cut_end] = 0.0
+
+        # Compute energy by integrating forces.
+        # Integrating backwards reduces noise.
+        ee = -simpson_integrate(rr[::-1], ff[::-1])[::-1]
+        ee -= ee[-1]
+
+        self.distance.append(rr)
+        self.force.append(ff)
+        self.energy.append(ee)
+
 
     # Writes the pair table data for iteration, it.
     def write_lammps(self, path, key, it):
